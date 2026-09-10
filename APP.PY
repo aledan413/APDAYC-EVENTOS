@@ -22,7 +22,7 @@ db = firestore.client()
 # =========================
 
 st.set_page_config(
-    page_title="PRUEBA",
+    page_title="APDAYC - Eventos",
     page_icon="🎵",
     layout="centered"
 )
