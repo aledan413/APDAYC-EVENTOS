@@ -1,26 +1,13 @@
-
 import streamlit as st
 import csv
 import os
+import pandas as pd
 from datetime import date
-import firebase_admin
-from firebase_admin import credentials, firestore
+from io import BytesIO
 
-# =========================
-# FIREBASE
-# =========================
-
-if not firebase_admin._apps:
-    cred = credentials.Certificate(dict(st.secrets["firebase"]))
-    firebase_admin.initialize_app(cred)
-
-db = firestore.client()
-
-
-
-# =========================
+# ============================================================
 # CONFIGURACIÓN
-# =========================
+# ============================================================
 
 st.set_page_config(
     page_title="APDAYC - Eventos",
@@ -49,46 +36,81 @@ COLUMNAS = [
     "PROMOTOR",
     "TELEFONO",
     "CODIGO",
-    "OBSERVACIONES"
+    "OBSERVACIONES",
+    "VOUCHER"
 ]
 
-# Crear CSV si no existe
-if not os.path.exists(ARCHIVO) or os.path.getsize(ARCHIVO) == 0:
-    with open(ARCHIVO, "w", newline="", encoding="utf-8-sig") as archivo:
-        escritor = csv.writer(archivo)
-        escritor.writerow(COLUMNAS)
+# ============================================================
+# FUNCIONES
+# ============================================================
 
-# =========================
+def asegurar_csv():
+    if not os.path.exists(ARCHIVO) or os.path.getsize(ARCHIVO) == 0:
+        with open(ARCHIVO, "w", newline="", encoding="utf-8-sig") as archivo:
+            csv.writer(archivo).writerow(COLUMNAS)
+
+def leer_registros():
+    asegurar_csv()
+    try:
+        return pd.read_csv(ARCHIVO, encoding="utf-8-sig")
+    except Exception:
+        return pd.DataFrame(columns=COLUMNAS)
+
+def guardar_fila(datos):
+    asegurar_csv()
+    with open(ARCHIVO, "a", newline="", encoding="utf-8-sig") as archivo:
+        csv.writer(archivo).writerow(datos)
+
+def crear_excel(df):
+    salida = BytesIO()
+    with pd.ExcelWriter(salida, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Eventos")
+        hoja = writer.book["Eventos"]
+        for columna in hoja.columns:
+            max_len = 0
+            letra = columna[0].column_letter
+            for celda in columna:
+                valor = "" if celda.value is None else str(celda.value)
+                max_len = max(max_len, len(valor))
+            hoja.column_dimensions[letra].width = min(max(max_len + 2, 10), 35)
+        hoja.freeze_panes = "A2"
+        hoja.auto_filter.ref = hoja.dimensions
+    salida.seek(0)
+    return salida
+
+asegurar_csv()
+
+# ============================================================
 # TÍTULO
-# =========================
+# ============================================================
 
 st.title("🎵 APDAYC - Control de Eventos")
-st.caption("Control territorial de eventos, locales y pagos")
+st.caption("Piloto móvil para control territorial de eventos, locales y pagos")
 
-# =========================
+# ============================================================
 # MENÚ
-# =========================
+# ============================================================
 
 opcion = st.radio(
     "Selecciona una opción",
     [
         "🏪 Registrar / actualizar local",
-        "🎤 Registrar evento"
+        "🎤 Registrar evento",
+        "📊 Ver registros / Exportar Excel"
     ],
     horizontal=True
 )
 
 # ============================================================
-# PARTE 1: REGISTRAR / ACTUALIZAR LOCAL
+# PARTE 1: LOCAL
 # ============================================================
 
 if opcion == "🏪 Registrar / actualizar local":
 
     st.subheader("🏪 Ficha del local")
-
     st.info(
         "Registra aquí los datos que normalmente no cambian. "
-        "Después podrás seleccionar este local al registrar un evento."
+        "Luego podrás seleccionar este local al registrar un evento."
     )
 
     local = st.text_input("LOCAL")
@@ -100,84 +122,68 @@ if opcion == "🏪 Registrar / actualizar local":
     telefono = st.text_input("TELÉFONO")
     codigo = st.text_input("CÓDIGO")
 
-    st.divider()
-
     if st.button("💾 GUARDAR LOCAL", use_container_width=True):
-
         if not local:
             st.error("Debes ingresar el LOCAL.")
-
         elif not nombre:
             st.error("Debes ingresar el NOMBRE / RAZÓN SOCIAL.")
-
         elif not distrito:
             st.error("Debes ingresar el DISTRITO.")
-
         else:
+            st.success(
+                "✅ Local registrado para el piloto. "
+                "Para esta versión, vuelve a ingresar los locales si reinicias la aplicación."
+            )
 
-            datos_local = {
-                "local": local,
-                "nombre": nombre,
-                "ruc_dni": ruc_dni,
-                "direccion": direccion,
-                "distrito": distrito,
-                "promotor": promotor,
-                "telefono": telefono,
-                "codigo": codigo
+            # Guardamos locales en un archivo independiente.
+            locales = []
+            if os.path.exists("locales.csv"):
+                try:
+                    locales = pd.read_csv("locales.csv", encoding="utf-8-sig").to_dict("records")
+                except Exception:
+                    locales = []
+
+            nuevo = {
+                "LOCAL": local,
+                "NOMBRE": nombre,
+                "RUC/DNI": ruc_dni,
+                "DIRECCION": direccion,
+                "DISTRITO": distrito,
+                "PROMOTOR": promotor,
+                "TELEFONO": telefono,
+                "CODIGO": codigo
             }
 
-            # Guardar en Firebase
-            db.collection("locales").add(datos_local)
+            # Evitar duplicado exacto por LOCAL.
+            locales = [x for x in locales if str(x.get("LOCAL", "")).strip().lower() != local.strip().lower()]
+            locales.append(nuevo)
 
-            st.success("✅ LOCAL GUARDADO CORRECTAMENTE")
+            pd.DataFrame(locales).to_csv(
+                "locales.csv", index=False, encoding="utf-8-sig"
+            )
 
 # ============================================================
-# PARTE 2: REGISTRAR EVENTO
+# PARTE 2: EVENTO
 # ============================================================
 
-else:
+elif opcion == "🎤 Registrar evento":
 
     st.subheader("🎤 Registrar evento")
 
-    # =========================
-    # OBTENER LOCALES DE FIREBASE
-    # =========================
-
-    locales_docs = db.collection("locales").stream()
-
     locales = []
-
-    for documento in locales_docs:
-        datos = documento.to_dict()
-
-        locales.append({
-            "id": documento.id,
-            "local": datos.get("local", ""),
-            "nombre": datos.get("nombre", ""),
-            "ruc_dni": datos.get("ruc_dni", ""),
-            "direccion": datos.get("direccion", ""),
-            "distrito": datos.get("distrito", ""),
-            "promotor": datos.get("promotor", ""),
-            "telefono": datos.get("telefono", ""),
-            "codigo": datos.get("codigo", "")
-        })
-
-    # =========================
-    # SELECCIONAR LOCAL
-    # =========================
+    if os.path.exists("locales.csv"):
+        try:
+            locales = pd.read_csv("locales.csv", encoding="utf-8-sig").fillna("").to_dict("records")
+        except Exception:
+            locales = []
 
     if not locales:
-
         st.warning(
             "⚠️ Todavía no tienes locales registrados. "
             "Primero entra a '🏪 Registrar / actualizar local'."
         )
-
     else:
-
-        nombres_locales = [
-            local["local"] for local in locales
-        ]
+        nombres_locales = [str(local["LOCAL"]) for local in locales]
 
         local_seleccionado = st.selectbox(
             "🏪 SELECCIONA EL LOCAL",
@@ -185,69 +191,30 @@ else:
         )
 
         datos_local = None
-
         if local_seleccionado != "Seleccionar":
-
             for local in locales:
-                if local["local"] == local_seleccionado:
+                if str(local["LOCAL"]) == local_seleccionado:
                     datos_local = local
                     break
 
-        # =========================
-        # MOSTRAR DATOS AUTOMÁTICOS
-        # =========================
-
         if datos_local:
-
             st.success("✅ Datos del local cargados automáticamente")
 
-            st.write(
-                f"**Nombre / Razón Social:** "
-                f"{datos_local['nombre']}"
-            )
-
-            st.write(
-                f"**RUC / DNI:** "
-                f"{datos_local['ruc_dni']}"
-            )
-
-            st.write(
-                f"**Dirección:** "
-                f"{datos_local['direccion']}"
-            )
-
-            st.write(
-                f"**Distrito:** "
-                f"{datos_local['distrito']}"
-            )
-
-            st.write(
-                f"**Promotor:** "
-                f"{datos_local['promotor']}"
-            )
-
-            st.write(
-                f"**Teléfono:** "
-                f"{datos_local['telefono']}"
-            )
-
-            st.write(
-                f"**Código:** "
-                f"{datos_local['codigo']}"
-            )
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write(f"**Razón social:** {datos_local['NOMBRE']}")
+                st.write(f"**RUC/DNI:** {datos_local['RUC/DNI']}")
+                st.write(f"**Distrito:** {datos_local['DISTRITO']}")
+                st.write(f"**Promotor:** {datos_local['PROMOTOR']}")
+            with col2:
+                st.write(f"**Dirección:** {datos_local['DIRECCION']}")
+                st.write(f"**Teléfono:** {datos_local['TELEFONO']}")
+                st.write(f"**Código:** {datos_local['CODIGO']}")
 
             st.divider()
-
-            # =========================
-            # DATOS DEL EVENTO
-            # =========================
-
             st.subheader("🎤 Datos del evento")
 
-            fecha = st.date_input(
-                "FECHA",
-                value=date.today()
-            )
+            fecha = st.date_input("FECHA", value=date.today())
 
             tipo_evento = st.selectbox(
                 "TIPO DE EVENTO",
@@ -274,11 +241,8 @@ else:
             )
 
             artista = ""
-
             if medio == "Medios humanos":
-                artista = st.text_input(
-                    "ARTISTA / BANDA / GRUPO QUE SE PRESENTÓ"
-                )
+                artista = st.text_input("ARTISTA / BANDA / GRUPO QUE SE PRESENTÓ")
 
             st.subheader("💰 Tarifa y pago")
 
@@ -326,51 +290,30 @@ else:
 
             operacion = st.text_input("N.º DE OPERACIÓN")
 
-            observacion = st.text_area(
-                "OBSERVACIONES"
-            )
+            observacion = st.text_area("OBSERVACIONES")
 
             st.subheader("📷 Voucher")
 
             voucher = st.file_uploader(
                 "Adjuntar voucher",
-                type=[
-                    "jpg",
-                    "jpeg",
-                    "png",
-                    "pdf"
-                ]
+                type=["jpg", "jpeg", "png", "pdf"]
             )
 
-            st.divider()
-
-            # =========================
-            # GUARDAR EVENTO
-            # =========================
-
-            if st.button(
-                "💾 GUARDAR EVENTO",
-                use_container_width=True
-            ):
+            if st.button("💾 GUARDAR EVENTO", use_container_width=True):
 
                 if tipo_evento == "Seleccionar":
-                    st.error(
-                        "Debes seleccionar el TIPO DE EVENTO."
-                    )
-
+                    st.error("Debes seleccionar el TIPO DE EVENTO.")
                 elif medio == "Seleccionar":
-                    st.error(
-                        "Debes seleccionar el MEDIO."
-                    )
-
+                    st.error("Debes seleccionar el MEDIO.")
                 else:
+                    voucher_nombre = voucher.name if voucher else ""
 
                     datos = [
-                        datos_local["local"],
-                        datos_local["nombre"],
-                        datos_local["ruc_dni"],
-                        datos_local["direccion"],
-                        datos_local["distrito"],
+                        datos_local["LOCAL"],
+                        datos_local["NOMBRE"],
+                        datos_local["RUC/DNI"],
+                        datos_local["DIRECCION"],
+                        datos_local["DISTRITO"],
                         str(fecha),
                         monto,
                         medio,
@@ -381,80 +324,62 @@ else:
                         pago,
                         banco,
                         operacion,
-                        datos_local["promotor"],
-                        datos_local["telefono"],
-                        datos_local["codigo"],
-                        observacion
+                        datos_local["PROMOTOR"],
+                        datos_local["TELEFONO"],
+                        datos_local["CODIGO"],
+                        observacion,
+                        voucher_nombre
                     ]
 
-                    # Guardar en CSV
-                    with open(
-                        ARCHIVO,
-                        "a",
-                        newline="",
-                        encoding="utf-8-sig"
-                    ) as archivo:
+                    guardar_fila(datos)
 
-                        escritor = csv.writer(archivo)
-                        escritor.writerow(datos)
-
-                    # Guardar en Firebase
-                    datos_firebase = {
-                        "local": datos_local["local"],
-                        "nombre": datos_local["nombre"],
-                        "ruc_dni": datos_local["ruc_dni"],
-                        "direccion": datos_local["direccion"],
-                        "distrito": datos_local["distrito"],
-                        "fecha": str(fecha),
-                        "monto": monto,
-                        "medio": medio,
-                        "tipo_evento": tipo_evento,
-                        "artista": artista,
-                        "tarifa": tarifa,
-                        "tarifa_correcta": tarifa_correcta,
-                        "pago": pago,
-                        "banco": banco,
-                        "operacion": operacion,
-                        "promotor": datos_local["promotor"],
-                        "telefono": datos_local["telefono"],
-                        "codigo": datos_local["codigo"],
-                        "observacion": observacion
-                    }
-
-                    db.collection("eventos").add(
-                        datos_firebase
-                    )
-
-                    st.success(
-                        "✅ EVENTO GUARDADO CORRECTAMENTE"
-                    )
-
+                    st.success("✅ EVENTO GUARDADO CORRECTAMENTE")
                     st.write("### Registro guardado")
-
-                    st.write(
-                        f"**Local:** "
-                        f"{datos_local['local']}"
-                    )
-
-                    st.write(
-                        f"**Fecha:** {fecha}"
-                    )
-
-                    st.write(
-                        f"**Monto:** S/ {monto:,.2f}"
-                    )
-
-                    st.write(
-                        f"**Medio:** {medio}"
-                    )
-
-                    st.write(
-                        f"**Pago:** {pago}"
-                    )
+                    st.write(f"**Local:** {datos_local['LOCAL']}")
+                    st.write(f"**Fecha:** {fecha}")
+                    st.write(f"**Monto:** S/ {monto:,.2f}")
+                    st.write(f"**Medio:** {medio}")
+                    st.write(f"**Pago:** {pago}")
 
                     if voucher:
-                        st.info(
-                            f"📎 Voucher recibido: "
-                            f"{voucher.name}"
-                        )
+                        st.info(f"📎 Voucher registrado: {voucher.name}")
 
+# ============================================================
+# PARTE 3: CONSULTA Y EXPORTACIÓN
+# ============================================================
+
+else:
+
+    st.subheader("📊 Registros y exportación")
+
+    df = leer_registros()
+
+    if df.empty:
+        st.info("Todavía no hay eventos registrados.")
+    else:
+        st.metric("Total de eventos", len(df))
+        st.dataframe(df, use_container_width=True, hide_index=True)
+
+        excel = crear_excel(df)
+
+        st.download_button(
+            label="📥 DESCARGAR EXCEL",
+            data=excel,
+            file_name=f"APDAYC_eventos_{date.today()}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
+
+        st.caption(
+            "El Excel contiene todos los registros guardados en esta versión del piloto."
+        )
+
+# ============================================================
+# NOTA DEL PILOTO
+# ============================================================
+
+st.divider()
+st.caption(
+    "Versión piloto: almacenamiento local temporal. "
+    "La conexión en línea con Firebase/Firestore puede incorporarse en la siguiente etapa."
+)
