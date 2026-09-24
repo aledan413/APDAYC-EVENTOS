@@ -49,17 +49,17 @@ def cargar_base_locales():
 
     try:
 
-       df = pd.read_excel(
-    ARCHIVO_BASE_LOCALES,
-    dtype=str,
-    engine="calamine"
-       )
+        df = pd.read_excel(
+            ARCHIVO_BASE_LOCALES,
+            dtype=str,
+            engine="calamine"
+        )
+
     except Exception as e:
 
         st.error("❌ No se pudo leer BASE2.xlsx")
-        st.code(
-            str(e)
-        )
+
+        st.code(str(e))
 
         st.stop()
 
@@ -76,19 +76,25 @@ def cargar_base_locales():
 
     return df
 
-    # Limpiar nombres de columnas
-    df.columns = df.columns.str.strip()
 
-    # Limpiar datos
-    for columna in df.columns:
-        df[columna] = (
-            df[columna]
-            .fillna("")
-            .astype(str)
-            .str.strip()
-        )
+def buscar_locales_excel(termino):
 
-    return df
+    df = cargar_base_locales()
+
+    termino = termino.strip().lower()
+
+    if not termino:
+        return df.iloc[0:0]
+
+    resultados = df[
+        df["Establecimiento"]
+        .str.lower()
+        .str.contains(termino, na=False)
+    ]
+
+    return resultados
+
+
 
 
 def buscar_locales_excel(termino):
