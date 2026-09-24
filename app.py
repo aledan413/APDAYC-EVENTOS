@@ -47,10 +47,36 @@ ARCHIVO_BASE_LOCALES = "BASE AGECOFER LOCALES.xlsx"
 @st.cache_data
 def cargar_base_locales():
 
-    df = pd.read_excel(
-        ARCHIVO_BASE_LOCALES,
-        dtype=str
-    )
+    try:
+
+        df = pd.read_excel(
+            ARCHIVO_BASE_LOCALES,
+            dtype=str,
+            engine="openpyxl"
+        )
+
+    except Exception as e:
+
+        st.error("❌ No se pudo leer BASE AGECOFER LOCALES.xlsx")
+
+        st.code(
+            str(e)
+        )
+
+        st.stop()
+
+    df.columns = df.columns.str.strip()
+
+    for columna in df.columns:
+
+        df[columna] = (
+            df[columna]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+        )
+
+    return df
 
     # Limpiar nombres de columnas
     df.columns = df.columns.str.strip()
