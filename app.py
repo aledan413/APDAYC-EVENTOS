@@ -49,16 +49,14 @@ def cargar_base_locales():
 
     try:
 
-        df = pd.read_excel(
-            ARCHIVO_BASE_LOCALES,
-            dtype=str,
-            engine="openpyxl"
-        )
-
+       df = pd.read_excel(
+    ARCHIVO_BASE_LOCALES,
+    dtype=str,
+    engine="calamine"
+       )
     except Exception as e:
 
-        st.error("❌ No se pudo leer BASE AGECOFER LOCALES.xlsx")
-
+        st.error("❌ No se pudo leer BASE2.xlsx")
         st.code(
             str(e)
         )
