@@ -41,7 +41,7 @@ USUARIOS_PILOTO = {
 # BASE MAESTRA DE LOCALES - EXCEL
 # =========================================================
 
-ARCHIVO_BASE_LOCALES = "BASE AGECOFER LOCALES.xlsx"
+ARCHIVO_BASE_LOCALES = "BASE2.xlsx"
 
 
 @st.cache_data
