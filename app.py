@@ -35,7 +35,55 @@ db = firestore.client()
 
 USUARIOS_PILOTO = {
     "LN14": "1234"
-}
+} 
+
+# =========================================================
+# BASE MAESTRA DE LOCALES - EXCEL
+# =========================================================
+
+ARCHIVO_BASE_LOCALES = "BASE AGECOFER LOCALES.xlsx"
+
+
+@st.cache_data
+def cargar_base_locales():
+
+    df = pd.read_excel(
+        ARCHIVO_BASE_LOCALES,
+        dtype=str
+    )
+
+    # Limpiar nombres de columnas
+    df.columns = df.columns.str.strip()
+
+    # Limpiar datos
+    for columna in df.columns:
+        df[columna] = (
+            df[columna]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+        )
+
+    return df
+
+
+def buscar_locales_excel(termino):
+
+    df = cargar_base_locales()
+
+    termino = termino.strip().lower()
+
+    if not termino:
+        return df.iloc[0:0]
+
+    resultados = df[
+        df["Establecimiento"]
+        .str.lower()
+        .str.contains(termino, na=False)
+    ]
+
+    return resultados
+
 
 
 # =========================================================
@@ -611,38 +659,75 @@ elif opcion == "🚗 Visitas":
 
     st.title("🚗 Registrar visita")
 
-    locales = obtener_locales()
+   # =========================================================
+# BUSCAR ESTABLECIMIENTO EN LA BASE MAESTRA
+# =========================================================
 
-    nombres = [
-        x.get("nombre", x.get("local", "Sin nombre"))
-        for x in locales
-    ]
+termino_busqueda = st.text_input(
+    "🔎 Buscar establecimiento",
+    placeholder="Escribe parte del nombre, por ejemplo: huanca",
+    key="buscar_visita"
+)
 
-    nombres = list(dict.fromkeys(nombres))
+fila_local = None
 
+if len(termino_busqueda.strip()) >= 2:
 
-    local_seleccionado = st.selectbox(
-        "Local visitado",
-        ["Nuevo local"] + nombres
+    resultados = buscar_locales_excel(
+        termino_busqueda
     )
 
+    if resultados.empty:
 
-    local_data = None
+        st.warning(
+            "No se encontraron establecimientos."
+        )
 
-    if local_seleccionado != "Nuevo local":
+    else:
 
-        for x in locales:
+        opciones = []
 
-            nombre_x = x.get(
-                "nombre",
-                x.get("local", "")
+        for indice, fila in resultados.iterrows():
+
+            opciones.append(
+                f"{fila['Establecimiento']} | "
+                f"RUC: {fila['Ruc']} | "
+                f"{fila['Direccion']}"
             )
 
-            if nombre_x == local_seleccionado:
+        seleccion = st.selectbox(
+            "🏪 Selecciona el establecimiento",
+            opciones,
+            key="seleccionar_visita"
+        )
 
-                local_data = x
-                break
+        posicion = opciones.index(seleccion)
 
+        fila_local = resultados.iloc[posicion]
+
+else:
+
+    st.info(
+        "Escribe al menos 2 letras para buscar un establecimiento."
+    ) 
+
+    if fila_local is not None:
+
+    st.success("✅ Establecimiento encontrado en la base maestra")
+
+    local = fila_local["Establecimiento"]
+    nombre = fila_local["Nombre ó Razón Social"]
+    documento = fila_local["Ruc"]
+    direccion = fila_local["Direccion"]
+    distrito = fila_local["Distrito"]
+
+else:
+
+    local = ""
+    nombre = ""
+    documento = ""
+    direccion = ""
+    distrito = ""
 
     col1, col2 = st.columns(2)
 
