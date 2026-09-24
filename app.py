@@ -97,25 +97,6 @@ def buscar_locales_excel(termino):
 
 
 
-def buscar_locales_excel(termino):
-
-    df = cargar_base_locales()
-
-    termino = termino.strip().lower()
-
-    if not termino:
-        return df.iloc[0:0]
-
-    resultados = df[
-        df["Establecimiento"]
-        .str.lower()
-        .str.contains(termino, na=False)
-    ]
-
-    return resultados
-
-
-
 # =========================================================
 # FUNCIONES FIREBASE
 # =========================================================
