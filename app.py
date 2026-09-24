@@ -445,7 +445,6 @@ elif opcion == "📲 Mandar a facturar":
         ["Nuevo local"] + nombres
     )
 
-
     local_data = None
 
     if local_seleccionado != "Nuevo local":
@@ -462,45 +461,53 @@ elif opcion == "📲 Mandar a facturar":
                 local_data = x
                 break
 
-
     col1, col2 = st.columns(2)
 
     with col1:
 
-    st.text_input(
-        "Local / Establecimiento",
-        value=local,
-        disabled=True,
-        key=f"local_visita_{fila_local.name if fila_local is not None else 'vacio'}"
-    )
+        local = st.text_input(
+            "Local",
+            value=(
+                local_data.get("local", "")
+                if local_data else ""
+            )
+        )
 
-    st.text_input(
-        "Razón social / nombre",
-        value=nombre,
-        disabled=True,
-        key=f"nombre_visita_{fila_local.name if fila_local is not None else 'vacio'}"
-    )
+        nombre = st.text_input(
+            "Razón social / nombre",
+            value=(
+                local_data.get("nombre", "")
+                if local_data else ""
+            )
+        )
 
-    st.text_input(
-        "RUC / DNI",
-        value=documento,
-        disabled=True,
-        key=f"documento_visita_{fila_local.name if fila_local is not None else 'vacio'}"
-    )
+        documento = st.text_input(
+            "RUC / DNI",
+            value=(
+                local_data.get(
+                    "ruc_dni",
+                    local_data.get("documento", "")
+                )
+                if local_data else ""
+            )
+        )
 
-    st.text_input(
-        "Dirección",
-        value=direccion,
-        disabled=True,
-        key=f"direccion_visita_{fila_local.name if fila_local is not None else 'vacio'}"
-    )
+        direccion = st.text_input(
+            "Dirección",
+            value=(
+                local_data.get("direccion", "")
+                if local_data else ""
+            )
+        )
 
-    st.text_input(
-        "Distrito",
-        value=distrito,
-        disabled=True,
-        key=f"distrito_visita_{fila_local.name if fila_local is not None else 'vacio'}"
-    )
+        distrito = st.text_input(
+            "Distrito",
+            value=(
+                local_data.get("distrito", "")
+                if local_data else ""
+            )
+        )
+
     with col2:
 
         fecha_evento = st.date_input(
@@ -576,7 +583,6 @@ elif opcion == "📲 Mandar a facturar":
         "Observaciones"
     )
 
-
     if st.button(
         "💾 Guardar y preparar facturación",
         type="primary"
@@ -615,22 +621,17 @@ elif opcion == "📲 Mandar a facturar":
             "observaciones": observaciones
         }
 
-
         guardar_facturacion(datos)
-
 
         st.success(
             "Registro enviado correctamente a facturación."
         )
 
-
         mensaje = generar_whatsapp(datos)
-
 
         st.subheader(
             "📱 Mensaje para WhatsApp"
         )
-
 
         st.text_area(
             "Mensaje",
@@ -638,9 +639,7 @@ elif opcion == "📲 Mandar a facturar":
             height=400
         )
 
-
         boton_copiar_whatsapp(mensaje)
-
 
 # =========================================================
 # VISITAS
@@ -650,122 +649,125 @@ elif opcion == "🚗 Visitas":
 
     st.title("🚗 Registrar visita")
 
-   # =========================================================
-# BUSCAR ESTABLECIMIENTO EN LA BASE MAESTRA
-# =========================================================
+    # =====================================================
+    # BUSCAR ESTABLECIMIENTO EN EL EXCEL
+    # =====================================================
 
-termino_busqueda = st.text_input(
-    "🔎 Buscar establecimiento",
-    placeholder="Escribe parte del nombre, por ejemplo: huanca",
-    key="buscar_visita"
-)
-
-fila_local = None
-
-if len(termino_busqueda.strip()) >= 2:
-
-    resultados = buscar_locales_excel(
-        termino_busqueda
+    termino_busqueda = st.text_input(
+        "🔎 Buscar establecimiento",
+        placeholder="Escribe parte del nombre, por ejemplo: huanca",
+        key="buscar_visita"
     )
 
-    if resultados.empty:
+    fila_local = None
 
-        st.warning(
-            "No se encontraron establecimientos."
+    if len(termino_busqueda.strip()) >= 2:
+
+        resultados = buscar_locales_excel(
+            termino_busqueda
+        )
+
+        if resultados.empty:
+
+            st.warning(
+                "No se encontraron establecimientos."
+            )
+
+        else:
+
+            opciones = []
+
+            for indice, fila in resultados.iterrows():
+
+                opciones.append(
+                    f"{fila['Establecimiento']} | "
+                    f"RUC: {fila['Ruc']} | "
+                    f"{fila['Direccion']}"
+                )
+
+            seleccion = st.selectbox(
+                "🏪 Selecciona el establecimiento",
+                opciones,
+                key="seleccionar_visita"
+            )
+
+            posicion = opciones.index(seleccion)
+
+            fila_local = resultados.iloc[posicion]
+
+    else:
+
+        st.info(
+            "Escribe al menos 2 letras para buscar un establecimiento."
+        )
+
+
+    # =====================================================
+    # DATOS DEL ESTABLECIMIENTO
+    # =====================================================
+
+    if fila_local is not None:
+
+        local = fila_local["Establecimiento"]
+        nombre = fila_local["Nombre ó Razón Social"]
+        documento = fila_local["Ruc"]
+        direccion = fila_local["Direccion"]
+        distrito = fila_local["Distrito"]
+
+        st.success(
+            "✅ Datos encontrados en la base maestra"
         )
 
     else:
 
-        opciones = []
+        local = ""
+        nombre = ""
+        documento = ""
+        direccion = ""
+        distrito = ""
 
-        for indice, fila in resultados.iterrows():
 
-            opciones.append(
-                f"{fila['Establecimiento']} | "
-                f"RUC: {fila['Ruc']} | "
-                f"{fila['Direccion']}"
-            )
-
-        seleccion = st.selectbox(
-            "🏪 Selecciona el establecimiento",
-            opciones,
-            key="seleccionar_visita"
-        )
-
-        posicion = opciones.index(seleccion)
-
-        fila_local = resultados.iloc[posicion]
-
-else:
-
-    st.info(
-        "Escribe al menos 2 letras para buscar un establecimiento."
-    ) 
-
-    if fila_local is not None:
-
-    st.success("✅ Establecimiento encontrado en la base maestra")
-
-    local = fila_local["Establecimiento"]
-    nombre = fila_local["Nombre ó Razón Social"]
-    documento = fila_local["Ruc"]
-    direccion = fila_local["Direccion"]
-    distrito = fila_local["Distrito"]
-
-else:
-
-    local = ""
-    nombre = ""
-    documento = ""
-    direccion = ""
-    distrito = ""
+    # =====================================================
+    # FORMULARIO
+    # =====================================================
 
     col1, col2 = st.columns(2)
 
-
     with col1:
 
-        local = st.text_input(
-            "Local",
-            value=(
-                local_data.get("local", "")
-                if local_data else ""
-            )
+        st.text_input(
+            "Local / Establecimiento",
+            value=local,
+            disabled=True,
+            key=f"local_visita_{fila_local.name if fila_local is not None else 'vacio'}"
         )
 
-        nombre = st.text_input(
+        st.text_input(
             "Razón social / nombre",
-            value=(
-                local_data.get("nombre", "")
-                if local_data else ""
-            )
+            value=nombre,
+            disabled=True,
+            key=f"nombre_visita_{fila_local.name if fila_local is not None else 'vacio'}"
         )
 
-        documento = st.text_input(
+        st.text_input(
             "RUC / DNI",
-            value=(
-                local_data.get(
-                    "ruc_dni",
-                    local_data.get("documento", "")
-                )
-                if local_data else ""
-            )
+            value=documento,
+            disabled=True,
+            key=f"documento_visita_{fila_local.name if fila_local is not None else 'vacio'}"
         )
 
-        direccion = st.text_input(
+        st.text_input(
             "Dirección",
-            value=(
-                local_data.get("direccion", "")
-                if local_data else ""
-            )
+            value=direccion,
+            disabled=True,
+            key=f"direccion_visita_{fila_local.name if fila_local is not None else 'vacio'}"
         )
 
-        distrito = st.text_input(
+        st.text_input(
             "Distrito",
-            value=(
-                local_data.get("distrito", "")
-                if local_data else ""
-            )
+            value=distrito,
+            disabled=True,
+            key=f"distrito_visita_{fila_local.name if fila_local is not None else 'vacio'}"
         )
 
 
@@ -858,6 +860,10 @@ else:
     )
 
 
+    # =====================================================
+    # GUARDAR VISITA
+    # =====================================================
+
     if st.button(
         "💾 Guardar visita",
         type="primary"
@@ -909,15 +915,11 @@ else:
             )
         }
 
-
         guardar_visita(datos)
 
-
         st.success(
-            "Visita registrada correctamente."
+            "✅ Visita registrada correctamente."
         )
-
-
 # =========================================================
 # LOCALES
 # =========================================================
