@@ -467,49 +467,40 @@ elif opcion == "📲 Mandar a facturar":
 
     with col1:
 
-        local = st.text_input(
-            "Local",
-            value=(
-                local_data.get("local", "")
-                if local_data else ""
-            )
-        )
+    st.text_input(
+        "Local / Establecimiento",
+        value=local,
+        disabled=True,
+        key=f"local_visita_{fila_local.name if fila_local is not None else 'vacio'}"
+    )
 
-        nombre = st.text_input(
-            "Razón social / nombre",
-            value=(
-                local_data.get("nombre", "")
-                if local_data else ""
-            )
-        )
+    st.text_input(
+        "Razón social / nombre",
+        value=nombre,
+        disabled=True,
+        key=f"nombre_visita_{fila_local.name if fila_local is not None else 'vacio'}"
+    )
 
-        documento = st.text_input(
-            "RUC / DNI",
-            value=(
-                local_data.get(
-                    "ruc_dni",
-                    local_data.get("documento", "")
-                )
-                if local_data else ""
-            )
-        )
+    st.text_input(
+        "RUC / DNI",
+        value=documento,
+        disabled=True,
+        key=f"documento_visita_{fila_local.name if fila_local is not None else 'vacio'}"
+    )
 
-        direccion = st.text_input(
-            "Dirección",
-            value=(
-                local_data.get("direccion", "")
-                if local_data else ""
-            )
-        )
+    st.text_input(
+        "Dirección",
+        value=direccion,
+        disabled=True,
+        key=f"direccion_visita_{fila_local.name if fila_local is not None else 'vacio'}"
+    )
 
-        distrito = st.text_input(
-            "Distrito",
-            value=(
-                local_data.get("distrito", "")
-                if local_data else ""
-            )
-        )
-
+    st.text_input(
+        "Distrito",
+        value=distrito,
+        disabled=True,
+        key=f"distrito_visita_{fila_local.name if fila_local is not None else 'vacio'}"
+    )
     with col2:
 
         fecha_evento = st.date_input(
