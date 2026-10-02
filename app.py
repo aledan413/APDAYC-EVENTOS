@@ -1236,17 +1236,19 @@ elif opcion == "🚗 Visitas":
     # FECHA Y HORA AUTOMÁTICAS
     # =====================================================
 
-   ahora = datetime.now(
-       ZoneInfo("America/Lima")
-   )
+    ahora = datetime.now(
+        ZoneInfo("America/Lima")
+    )
 
-   fecha_visita = str(ahora.date())
-   hora_visita = ahora.strftime("%H:%M:%S")
+    fecha_visita = str(ahora.date())
+    hora_visita = ahora.strftime("%H:%M:%S")
 
     st.info(
         f"🕐 Fecha: **{fecha_visita}** | "
         f"Hora: **{hora_visita}**"
     )
+
+ 
 
     # =====================================================
     # GPS
