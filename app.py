@@ -949,17 +949,28 @@ elif opcion == "📲 Mandar a facturar":
 
 elif opcion == "🚗 Visitas":
 
-    st.title(
-        "🚗 Registrar visita"
+    st.title("🚗 Registrar visita")
+
+    # =====================================================
+    # FECHA Y HORA AUTOMÁTICAS
+    # =====================================================
+
+    ahora = datetime.now()
+
+    fecha_visita = str(ahora.date())
+
+    hora_visita = ahora.strftime("%H:%M:%S")
+
+    st.info(
+        f"🕐 Fecha: **{fecha_visita}** | "
+        f"Hora: **{hora_visita}**"
     )
 
-    st.subheader(
-        "📍 Ubicación de la visita"
-    )
+    # =====================================================
+    # UBICACIÓN GPS
+    # =====================================================
 
-    # -----------------------------------------------------
-    # GPS
-    # -----------------------------------------------------
+    st.subheader("📍 Ubicación de la visita")
 
     ubicacion = streamlit_geolocation()
 
@@ -970,290 +981,98 @@ elif opcion == "🚗 Visitas":
     if ubicacion:
 
         if (
-            "latitude"
-            in ubicacion
-            and "longitude"
-            in ubicacion
+            ubicacion.get("latitude") is not None
+            and ubicacion.get("longitude") is not None
         ):
 
-            latitud = ubicacion.get(
-                "latitude"
-            )
-
-            longitud = ubicacion.get(
-                "longitude"
-            )
-
+            latitud = ubicacion.get("latitude")
+            longitud = ubicacion.get("longitude")
             precision_gps = ubicacion.get(
                 "accuracy",
                 ""
             )
 
             st.success(
-                f"📍 Ubicación obtenida "
-                f"| Precisión aproximada: "
-                f"{precision_gps} m"
+                f"📍 GPS obtenido | "
+                f"Precisión aproximada: {precision_gps} m"
             )
 
-        elif "error" in ubicacion:
+        elif ubicacion.get("error"):
 
             st.warning(
                 "⚠️ No se pudo obtener la ubicación. "
-                "Verifica que el navegador tenga "
-                "permiso para acceder al GPS."
+                "Verifica el permiso de ubicación del navegador."
             )
-
-    # -----------------------------------------------------
-    # FECHA Y HORA
-    # -----------------------------------------------------
-
-    ahora = datetime.now()
-
-    fecha_visita = str(
-        ahora.date()
-    )
-
-    hora_visita = ahora.strftime(
-        "%H:%M:%S"
-    )
-
-    st.info(
-        f"🕐 Fecha de visita: **{fecha_visita}**  "
-        f"| Hora registrada: **{hora_visita}**"
-    )
 
     # =====================================================
-    # BUSCAR ESTABLECIMIENTO
+    # DATOS DEL LOCAL - MANUAL
     # =====================================================
 
-    termino_busqueda = st.text_input(
-        "🔎 Buscar por RUC, razón social o establecimiento",
-        placeholder="Ejemplo: 20123456789, Huanca o nombre de empresa",
-        key="buscar_visita"
-    )
+    st.subheader("🏪 Datos del local")
 
-    fila_local = None
+    col1, col2 = st.columns(2)
 
-    if len(
-        termino_busqueda.strip()
-    ) >= 2:
+    with col1:
 
-        resultados = buscar_locales_excel(
-            termino_busqueda
+        local = st.text_input(
+            "Local / Establecimiento",
+            placeholder="Ejemplo: Dventuri"
         )
 
-        if resultados.empty:
-
-            st.warning(
-                "No se encontraron establecimientos."
-            )
-
-        else:
-
-            opciones = []
-
-            indices = []
-
-            for indice, fila in resultados.iterrows():
-
-                opciones.append(
-                    f"{fila.get('Establecimiento', '')} | "
-                    f"RUC: {fila.get('Ruc', '')} | "
-                    f"{fila.get('Nombre ó Razón Social', '')} | "
-                    f"{fila.get('Direccion', '')}"
-                )
-
-                indices.append(
-                    indice
-                )
-
-            seleccion = st.selectbox(
-                "🏪 Selecciona el establecimiento",
-                opciones,
-                key="seleccionar_visita"
-            )
-
-            posicion = opciones.index(
-                seleccion
-            )
-
-            indice_seleccionado = (
-                indices[posicion]
-            )
-
-            fila_local = resultados.loc[
-                indice_seleccionado
-            ]
-
-    else:
-
-        st.info(
-            "Escribe al menos 2 caracteres para buscar."
+        nombre = st.text_input(
+            "Razón social / nombre",
+            placeholder="Nombre de la empresa"
         )
 
-
-    # =====================================================
-    # DATOS DEL LOCAL
-    # =====================================================
-
-    if fila_local is not None:
-
-        local = fila_local.get(
-            "Establecimiento",
-            ""
+        documento = st.text_input(
+            "RUC / DNI",
+            placeholder="Número de documento"
         )
 
-        nombre = fila_local.get(
-            "Nombre ó Razón Social",
-            ""
+        direccion = st.text_input(
+            "Dirección",
+            placeholder="Dirección del local"
         )
 
-        documento = fila_local.get(
-            "Ruc",
-            ""
-        )
-
-        direccion = fila_local.get(
-            "Direccion",
-            ""
-        )
-
-        distrito = fila_local.get(
+        distrito = st.text_input(
             "Distrito",
-            ""
+            placeholder="Ejemplo: San Martín de Porres"
         )
 
-        departamento = fila_local.get(
+    with col2:
+
+        departamento = st.text_input(
             "Departamento",
-            ""
+            value="Lima"
         )
 
-        provincia = fila_local.get(
+        provincia = st.text_input(
             "Provincia",
-            ""
+            value="Lima"
         )
 
-        tipo_establecimiento = fila_local.get(
-            "Tipo Est.",
-            ""
+        tipo_establecimiento = st.text_input(
+            "Tipo de establecimiento",
+            placeholder="Ejemplo: Restaurante"
         )
 
-        tipo_facturacion = fila_local.get(
-            "Tipo Fac.",
-            ""
+        tipo_facturacion = st.text_input(
+            "Tipo de facturación",
+            placeholder="Ejemplo: Factura"
         )
-
-        st.success(
-            "✅ Datos encontrados en la Base Maestra"
-        )
-
-    else:
-
-        local = ""
-        nombre = ""
-        documento = ""
-        direccion = ""
-        distrito = ""
-        departamento = ""
-        provincia = ""
-        tipo_establecimiento = ""
-        tipo_facturacion = ""
-
-
-    # =====================================================
-    # MOSTRAR DATOS
-    # =====================================================
-
-    if fila_local is not None:
-
-        with st.expander(
-            "🏪 Ver datos completos del establecimiento",
-            expanded=True
-        ):
-
-            col_a, col_b = st.columns(2)
-
-            with col_a:
-
-                st.text_input(
-                    "Local / Establecimiento",
-                    value=local,
-                    disabled=True,
-                    key=f"local_{fila_local.name}"
-                )
-
-                st.text_input(
-                    "Razón social",
-                    value=nombre,
-                    disabled=True,
-                    key=f"nombre_{fila_local.name}"
-                )
-
-                st.text_input(
-                    "RUC",
-                    value=documento,
-                    disabled=True,
-                    key=f"ruc_{fila_local.name}"
-                )
-
-                st.text_input(
-                    "Dirección",
-                    value=direccion,
-                    disabled=True,
-                    key=f"direccion_{fila_local.name}"
-                )
-
-            with col_b:
-
-                st.text_input(
-                    "Distrito",
-                    value=distrito,
-                    disabled=True,
-                    key=f"distrito_{fila_local.name}"
-                )
-
-                st.text_input(
-                    "Provincia",
-                    value=provincia,
-                    disabled=True,
-                    key=f"provincia_{fila_local.name}"
-                )
-
-                st.text_input(
-                    "Departamento",
-                    value=departamento,
-                    disabled=True,
-                    key=f"departamento_{fila_local.name}"
-                )
-
-                st.text_input(
-                    "Tipo de establecimiento",
-                    value=tipo_establecimiento,
-                    disabled=True,
-                    key=f"tipo_est_{fila_local.name}"
-                )
-
 
     # =====================================================
     # FOTO
     # =====================================================
 
-    st.subheader(
-        "📷 Evidencia fotográfica"
-    )
+    st.subheader("📷 Evidencia fotográfica")
 
     st.write(
-        "Toma la foto directamente desde el celular. "
-        "Esta foto quedará asociada a la visita."
+        "Toma la fotografía directamente desde el celular."
     )
 
     foto = st.camera_input(
-        "📸 Tomar foto de evidencia",
-        key=(
-            f"camera_{fila_local.name}"
-            if fila_local is not None
-            else "camera_vacia"
-        )
+        "📸 Tomar foto de evidencia"
     )
 
     foto_bytes = None
@@ -1270,27 +1089,23 @@ elif opcion == "🚗 Visitas":
             foto
         )
 
-        if foto_bytes is None:
+        if foto_bytes is not None:
 
-            st.error(
-                "❌ La foto es demasiado grande. "
-                "Toma otra foto con menor resolución."
+            st.success(
+                "📸 Foto preparada correctamente."
             )
 
         else:
 
-            st.success(
-                "📸 Foto preparada para guardar."
+            st.error(
+                "❌ No se pudo preparar la fotografía."
             )
 
-
     # =====================================================
-    # FORMULARIO DE VISITA
+    # RESULTADO
     # =====================================================
 
-    st.subheader(
-        "📝 Resultado de la visita"
-    )
+    st.subheader("📝 Resultado de la visita")
 
     col1, col2 = st.columns(2)
 
@@ -1378,48 +1193,36 @@ elif opcion == "🚗 Visitas":
         "Observaciones"
     )
 
+    # =====================================================
+    # RESUMEN
+    # =====================================================
+
+    st.subheader("📋 Resumen")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    col1.metric(
+        "Local",
+        local if local else "-"
+    )
+
+    col2.metric(
+        "Resultado",
+        resultado
+    )
+
+    col3.metric(
+        "Foto",
+        "Sí" if foto_bytes else "No"
+    )
+
+    col4.metric(
+        "GPS",
+        "Sí" if latitud else "No"
+    )
 
     # =====================================================
-    # RESUMEN ANTES DE GUARDAR
-    # =====================================================
-
-    if fila_local is not None:
-
-        st.subheader(
-            "📋 Resumen de la visita"
-        )
-
-        col1, col2, col3, col4 = st.columns(4)
-
-        col1.metric(
-            "Local",
-            local[:25]
-            if local
-            else "-"
-        )
-
-        col2.metric(
-            "Resultado",
-            resultado
-        )
-
-        col3.metric(
-            "Foto",
-            "Sí"
-            if foto_bytes
-            else "No"
-        )
-
-        col4.metric(
-            "GPS",
-            "Sí"
-            if latitud
-            else "No"
-        )
-
-
-    # =====================================================
-    # GUARDAR
+    # GUARDAR VISITA
     # =====================================================
 
     if st.button(
@@ -1428,149 +1231,147 @@ elif opcion == "🚗 Visitas":
         use_container_width=True
     ):
 
-        if not local:
+        if not local.strip():
 
             st.error(
-                "⚠️ Primero debes buscar y seleccionar un local."
+                "⚠️ Debes ingresar el nombre del local."
             )
 
-        elif foto is None:
+            st.stop()
 
-            st.error(
-                "⚠️ Toma una foto de evidencia antes de guardar."
+        if not documento.strip():
+
+            st.warning(
+                "⚠️ No has ingresado RUC/DNI. "
+                "Puedes continuar si no cuentas con el dato."
             )
 
-        elif foto_bytes is None:
+        # -------------------------------------------------
+        # VERIFICAR DUPLICADO
+        # -------------------------------------------------
 
-            st.error(
-                "⚠️ No se pudo preparar la foto."
+        gestor = st.session_state.get(
+            "codigo_gestor",
+            ""
+        )
+
+        duplicado = visita_ya_registrada_hoy(
+            documento=documento,
+            local=local,
+            gestor=gestor,
+            fecha_visita=fecha_visita
+        )
+
+        if duplicado:
+
+            st.warning(
+                "⚠️ Este local ya tiene una visita "
+                "registrada hoy."
             )
 
-        else:
-
-            gestor = st.session_state.get(
-                "codigo_gestor",
-                ""
+            confirmar = st.checkbox(
+                "Deseo registrar otra visita para este local."
             )
 
-            # ---------------------------------------------
-            # EVITAR DUPLICADOS
-            # ---------------------------------------------
+            if not confirmar:
 
-            duplicado = visita_ya_registrada_hoy(
-                documento=documento,
-                local=local,
-                gestor=gestor,
-                fecha_visita=fecha_visita
-            )
+                st.stop()
 
-            if duplicado:
+        # -------------------------------------------------
+        # DATOS
+        # -------------------------------------------------
 
-                st.warning(
-                    "⚠️ Este local ya tiene una visita "
-                    "registrada hoy para este gestor."
-                )
+        datos = {
 
-                confirmar = st.checkbox(
-                    "Quiero registrar nuevamente esta visita de todas formas."
-                )
+            "fecha_visita": fecha_visita,
 
-                if not confirmar:
+            "hora_visita": hora_visita,
 
-                    st.stop()
+            "fecha_hora_visita":
+                f"{fecha_visita} {hora_visita}",
 
+            # LOCAL
+            "local": local,
 
-            # ---------------------------------------------
-            # DATOS
-            # ---------------------------------------------
+            "nombre": nombre,
 
-            datos = {
+            "documento": documento,
 
-                "fecha_visita": fecha_visita,
+            "direccion": direccion,
 
-                "hora_visita": hora_visita,
+            "distrito": distrito,
 
-                "fecha_hora_visita": (
-                    f"{fecha_visita} "
-                    f"{hora_visita}"
-                ),
+            "departamento": departamento,
 
-                "local": local,
+            "provincia": provincia,
 
-                "nombre": nombre,
+            "tipo_establecimiento":
+                tipo_establecimiento,
 
-                "documento": documento,
+            "tipo_facturacion":
+                tipo_facturacion,
 
-                "direccion": direccion,
+            # VISITA
+            "resultado": resultado,
 
-                "distrito": distrito,
+            "fecha_evento":
+                str(fecha_evento)
+                if "fecha_evento" in locals()
+                else "",
 
-                "departamento": departamento,
+            "tipo_evento": tipo_evento,
 
-                "provincia": provincia,
+            "medio": medio,
 
-                "tipo_establecimiento": (
-                    tipo_establecimiento
-                ),
+            "artista": artista,
 
-                "tipo_facturacion": (
-                    tipo_facturacion
-                ),
+            "monto": monto,
 
-                "resultado": resultado,
+            "tarifa": tarifa,
 
-                "fecha_evento": str(
-                    fecha_evento
-                ),
+            "pago": pago,
 
-                "tipo_evento": tipo_evento,
+            "banco": banco,
 
-                "medio": medio,
+            "operacion": operacion,
 
-                "artista": artista,
+            "promotor": promotor,
 
-                "monto": monto,
+            "telefono": telefono,
 
-                "tarifa": tarifa,
+            "observaciones": observaciones,
 
-                "pago": pago,
+            # GESTOR
+            "gestor": gestor,
 
-                "banco": banco,
+            # GPS
+            "latitud": latitud,
 
-                "operacion": operacion,
+            "longitud": longitud,
 
-                "promotor": promotor,
+            "precision_gps": precision_gps,
 
-                "telefono": telefono,
+            # FOTO
+            "foto_evidencia": foto_bytes,
 
-                "observaciones": observaciones,
+            "tiene_foto":
+                True if foto_bytes else False
+        }
 
-                "gestor": gestor,
+        guardar_visita(datos)
 
-                # GPS
-                "latitud": latitud,
+        st.success(
+            "✅ VISITA REGISTRADA CORRECTAMENTE"
+        )
 
-                "longitud": longitud,
-
-                "precision_gps": precision_gps,
-
-                # Evidencia
-                "foto_evidencia": foto_bytes,
-
-                "tiene_foto": True
-            }
-
-            guardar_visita(
-                datos
-            )
-
-            st.success(
-                "✅ VISITA REGISTRADA CORRECTAMENTE"
-            )
-
-            st.balloons()
-
-
+        st.info(
+            f"📍 Local: {local}\n\n"
+            f"🕐 Hora: {hora_visita}\n\n"
+            f"📷 Evidencia: "
+            f"{'Sí' if foto_bytes else 'No'}\n\n"
+            f"📍 GPS: "
+            f"{'Sí' if latitud else 'No'}"
+        )
 # =========================================================
 # LOCALES
 # =========================================================
