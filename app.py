@@ -1,5 +1,6 @@
 import streamlit as st
 from datetime import date, datetime
+from zoneinfo import ZoneInfo
 import firebase_admin
 from firebase_admin import credentials, firestore
 import pandas as pd
@@ -157,8 +158,7 @@ def obtener_locales():
 
 def guardar_local(datos, documento_id=None):
 
-    datos["actualizado"] = datetime.now().isoformat()
-
+    datos["actualizado"] = datetime.now(ZoneInfo("America/Lima")).isoformat()
     if documento_id:
 
         db.collection("locales").document(
@@ -181,7 +181,7 @@ def guardar_local(datos, documento_id=None):
 
 def guardar_facturacion(datos):
 
-    datos["fecha_registro"] = datetime.now().isoformat()
+    datos["fecha_registro"] = datetime.now(ZoneInfo("America/Lima")).isoformat()
 
     db.collection("facturacion").add(datos)
 
@@ -311,7 +311,7 @@ def visita_ya_registrada_hoy(
 
 def guardar_visita(datos):
 
-    datos["fecha_registro"] = datetime.now().isoformat()
+    datos["fecha_registro"] = datetime.now(ZoneInfo("America/Lima")).isoformat()
 
     db.collection("visitas").add(datos)
 
