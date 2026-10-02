@@ -159,7 +159,7 @@ def obtener_locales():
 def guardar_local(datos, documento_id=None):
 
     datos["actualizado"] = datetime.now(
-        ZoneInfo("America/Lima")).
+        ZoneInfo("America/Lima"))
     isoformat()
     if documento_id:
 
