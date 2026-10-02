@@ -546,9 +546,54 @@ opcion = st.sidebar.radio(
 
 if opcion == "📊 Panel de ruta":
 
+    ahora_peru = datetime.now(
+        ZoneInfo("America/Lima")
+    )
+
+    hoy = str(ahora_peru.date())
+
     st.title("📊 Panel de ruta")
 
-    hoy = str(date.today())
+    st.caption(
+        f"📅 Fecha: {ahora_peru.strftime('%d/%m/%Y')}  |  "
+        f"🕐 Hora Perú: {ahora_peru.strftime('%H:%M:%S')}"
+    )
+
+    # =====================================================
+    # CONFIGURAR META
+    # =====================================================
+
+    st.subheader("🎯 Meta de ruta")
+
+    col_meta, col_actualizar = st.columns(
+        [3, 1]
+    )
+
+    with col_meta:
+
+        meta_locales = st.number_input(
+            "¿Cuántos locales debes visitar hoy?",
+            min_value=1,
+            max_value=200,
+            value=30,
+            step=1
+        )
+
+    with col_actualizar:
+
+        st.write("")
+        st.write("")
+
+        if st.button(
+            "🔄 Actualizar ruta",
+            use_container_width=True
+        ):
+
+            st.rerun()
+
+    # =====================================================
+    # OBTENER VISITAS DEL DÍA
+    # =====================================================
 
     visitas = []
 
@@ -567,67 +612,232 @@ if opcion == "📊 Panel de ruta":
 
             visitas.append(datos)
 
-    st.write(
-        f"Fecha de visita: **{hoy}**"
-    )
+    # =====================================================
+    # INDICADORES
+    # =====================================================
 
     total_visitas = len(visitas)
 
-    pagos = sum(
-        1
-        for x in visitas
-        if str(
-            x.get("pago", "")
-        ).lower()
-        in [
-            "pagado",
-            "sí",
-            "si"
-        ]
+    avance = (
+        total_visitas / meta_locales
+        if meta_locales > 0
+        else 0
     )
 
-    encontrados = sum(
-        1
-        for x in visitas
-        if x.get("resultado")
-        == "Encontrado"
+    porcentaje = min(
+        avance * 100,
+        100
     )
 
-    no_encontrados = sum(
-        1
-        for x in visitas
-        if x.get("resultado")
-        == "No encontrado"
+    faltan = max(
+        meta_locales - total_visitas,
+        0
     )
 
-    col1, col2, col3, col4, col5 = (
-        st.columns(5)
+    # =====================================================
+    # CONTADORES
+    # =====================================================
+
+    con_evento = sum(
+        1
+        for x in visitas
+        if x.get("tiene_evento")
+        == "Con evento"
     )
+
+    sin_evento = sum(
+        1
+        for x in visitas
+        if x.get("tiene_evento")
+        == "Sin evento"
+    )
+
+    sin_licenciar = sum(
+        1
+        for x in visitas
+        if x.get("estado_evento")
+        == "Detectado sin licenciar"
+    )
+
+    cartas = sum(
+        1
+        for x in visitas
+        if x.get("accion_realizada")
+        == "Se dejó carta de notificación"
+    )
+
+    licenciado_ruta = sum(
+        1
+        for x in visitas
+        if x.get("accion_realizada")
+        == "Licenciado en ruta"
+    )
+
+    fotos = sum(
+        1
+        for x in visitas
+        if x.get("tiene_foto")
+        is True
+    )
+
+    gps = sum(
+        1
+        for x in visitas
+        if (
+            x.get("latitud") not in [
+                "",
+                None
+            ]
+            and
+            x.get("longitud") not in [
+                "",
+                None
+            ]
+        )
+    )
+
+    # =====================================================
+    # TARJETAS PRINCIPALES
+    # =====================================================
+
+    st.subheader("📈 Avance de ruta")
+
+    col1, col2, col3, col4 = st.columns(4)
 
     col1.metric(
-        "Visitas de hoy",
-        total_visitas
+        "🎯 Meta",
+        meta_locales
     )
 
     col2.metric(
-        "Encontrados",
-        encontrados
+        "🚗 Visitados",
+        total_visitas
     )
 
     col3.metric(
-        "No encontrados",
-        no_encontrados
+        "⏳ Faltan",
+        faltan
     )
 
     col4.metric(
-        "Pagos",
-        pagos
+        "📈 Avance",
+        f"{porcentaje:.0f}%"
     )
 
-    col5.metric(
-        "Pendientes",
-        total_visitas - pagos
+    # =====================================================
+    # BARRA DE PROGRESO
+    # =====================================================
+
+    st.progress(
+        int(porcentaje)
     )
+
+    st.markdown(
+        f"""
+        <div style="
+            text-align:center;
+            font-size:22px;
+            font-weight:bold;
+            margin-top:-8px;
+            margin-bottom:20px;
+        ">
+            🚗 {total_visitas} de {meta_locales} locales visitados
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # =====================================================
+    # SEGUNDO GRUPO DE INDICADORES
+    # =====================================================
+
+    st.subheader("📋 Resultado de la ruta")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    col1.metric(
+        "🎵 Con evento",
+        con_evento
+    )
+
+    col2.metric(
+        "🏪 Sin evento",
+        sin_evento
+    )
+
+    col3.metric(
+        "⚠️ Sin licenciar",
+        sin_licenciar
+    )
+
+    col4.metric(
+        "📝 Cartas",
+        cartas
+    )
+
+    # =====================================================
+    # TERCER GRUPO
+    # =====================================================
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    col1.metric(
+        "✅ Licenciados en ruta",
+        licenciado_ruta
+    )
+
+    col2.metric(
+        "📷 Con foto",
+        fotos
+    )
+
+    col3.metric(
+        "📍 Con GPS",
+        gps
+    )
+
+    col4.metric(
+        "🕐 Última hora",
+        visitas[-1].get(
+            "hora_visita",
+            "-"
+        )
+        if visitas
+        else "-"
+    )
+
+    # =====================================================
+    # MENSAJE DE AVANCE
+    # =====================================================
+
+    if total_visitas == 0:
+
+        st.info(
+            "🚗 Todavía no tienes visitas registradas hoy. "
+            "¡Vamos con la ruta!"
+        )
+
+    elif total_visitas < meta_locales:
+
+        st.info(
+            f"🚗 Vas avanzando. "
+            f"Te faltan **{faltan} locales** "
+            f"para completar tu meta de hoy."
+        )
+
+    else:
+
+        st.success(
+            f"🎯 ¡Meta cumplida! "
+            f"Has registrado **{total_visitas} visitas** "
+            f"de una meta de {meta_locales}."
+        )
+
+    # =====================================================
+    # DETALLE DE VISITAS
+    # =====================================================
+
+    st.subheader("📍 Detalle de visitas de hoy")
 
     if visitas:
 
@@ -635,40 +845,105 @@ if opcion == "📊 Panel de ruta":
             visitas
         )
 
+        # -------------------------------------------------
+        # Crear columnas de visualización
+        # -------------------------------------------------
+
+        if "tiene_foto" in df.columns:
+
+            df["📷 Evidencia"] = df[
+                "tiene_foto"
+            ].apply(
+                lambda x:
+                "✅ Sí"
+                if x
+                else "❌ No"
+            )
+
+        else:
+
+            df["📷 Evidencia"] = "❌ No"
+
+        if (
+            "latitud" in df.columns
+            and
+            "longitud" in df.columns
+        ):
+
+            df["📍 GPS"] = df.apply(
+                lambda fila:
+                "✅ Sí"
+                if (
+                    fila.get("latitud")
+                    not in ["", None]
+                    and
+                    fila.get("longitud")
+                    not in ["", None]
+                )
+                else
+                "❌ No",
+                axis=1
+            )
+
+        else:
+
+            df["📍 GPS"] = "❌ No"
+
         columnas = [
-            "fecha_visita",
+
             "hora_visita",
+
             "local",
-            "documento",
-            "direccion",
-            "distrito",
-            "resultado",
-            "monto",
-            "pago",
-            "gestor",
-            "tiene_foto",
-            "latitud",
-            "longitud",
-            "precision_gps"
+
+            "tiene_evento",
+
+            "estado_evento",
+
+            "accion_realizada",
+
+            "codigo_carta",
+
+            "📷 Evidencia",
+
+            "📍 GPS",
+
+            "precision_gps",
+
+            "gestor"
         ]
 
         columnas_existentes = [
+
             c
             for c in columnas
             if c in df.columns
+
         ]
 
+        # -------------------------------------------------
+        # Ordenar por hora
+        # -------------------------------------------------
+
+        if "hora_visita" in df.columns:
+
+            df = df.sort_values(
+                by="hora_visita",
+                ascending=False
+            )
+
         st.dataframe(
-            df[columnas_existentes],
-            use_container_width=True
+            df[
+                columnas_existentes
+            ],
+            use_container_width=True,
+            hide_index=True
         )
 
     else:
 
         st.info(
-            "Todavía no hay visitas registradas hoy."
+            "📭 Todavía no hay visitas registradas hoy."
         )
-
 
 # =========================================================
 # MANDAR A FACTURAR
