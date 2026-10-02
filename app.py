@@ -316,8 +316,8 @@ def visita_ya_registrada_hoy(
 def guardar_visita(datos):
 
     datos["fecha_registro"] = datetime.now(
-        ZoneInfo("America/Lima"))
-    .isoformat()
+        ZoneInfo("America/Lima")
+    ).isoformat()
 
     db.collection("visitas").add(datos)
 
