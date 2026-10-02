@@ -184,8 +184,8 @@ def guardar_local(datos, documento_id=None):
 def guardar_facturacion(datos):
 
     datos["fecha_registro"] = datetime.now(
-        ZoneInfo("America/Lima"))
-    .isoformat()
+        ZoneInfo("America/Lima")
+    ).isoformat()
 
     db.collection("facturacion").add(datos)
 
