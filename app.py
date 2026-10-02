@@ -942,7 +942,7 @@ elif opcion == "📲 Mandar a facturar":
             mensaje
         )
 
-
+```python
 # =========================================================
 # VISITAS
 # =========================================================
@@ -958,7 +958,6 @@ elif opcion == "🚗 Visitas":
     ahora = datetime.now()
 
     fecha_visita = str(ahora.date())
-
     hora_visita = ahora.strftime("%H:%M:%S")
 
     st.info(
@@ -967,10 +966,8 @@ elif opcion == "🚗 Visitas":
     )
 
     # =====================================================
-    # UBICACIÓN GPS
+    # GPS
     # =====================================================
-
-    st.subheader("📍 Ubicación de la visita")
 
     ubicacion = streamlit_geolocation()
 
@@ -1001,78 +998,98 @@ elif opcion == "🚗 Visitas":
 
             st.warning(
                 "⚠️ No se pudo obtener la ubicación. "
-                "Verifica el permiso de ubicación del navegador."
+                "Verifica el permiso de ubicación."
             )
 
     # =====================================================
-    # DATOS DEL LOCAL - MANUAL
+    # LOCAL
     # =====================================================
 
-    st.subheader("🏪 Datos del local")
+    st.subheader("🏪 Local")
 
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        local = st.text_input(
-            "Local / Establecimiento",
-            placeholder="Ejemplo: Dventuri"
-        )
-
-        nombre = st.text_input(
-            "Razón social / nombre",
-            placeholder="Nombre de la empresa"
-        )
-
-        documento = st.text_input(
-            "RUC / DNI",
-            placeholder="Número de documento"
-        )
-
-        direccion = st.text_input(
-            "Dirección",
-            placeholder="Dirección del local"
-        )
-
-        distrito = st.text_input(
-            "Distrito",
-            placeholder="Ejemplo: San Martín de Porres"
-        )
-
-    with col2:
-
-        departamento = st.text_input(
-            "Departamento",
-            value="Lima"
-        )
-
-        provincia = st.text_input(
-            "Provincia",
-            value="Lima"
-        )
-
-        tipo_establecimiento = st.text_input(
-            "Tipo de establecimiento",
-            placeholder="Ejemplo: Restaurante"
-        )
-
-        tipo_facturacion = st.text_input(
-            "Tipo de facturación",
-            placeholder="Ejemplo: Factura"
-        )
-
-    # =====================================================
-    # FOTO
-    # =====================================================
-
-    st.subheader("📷 Evidencia fotográfica")
-
-    st.write(
-        "Toma la fotografía directamente desde el celular."
+    local = st.text_input(
+        "Nombre del local",
+        placeholder="Ejemplo: Dventuri"
     )
 
+    # =====================================================
+    # ¿TIENE EVENTO?
+    # =====================================================
+
+    st.subheader("🎵 Evento")
+
+    tiene_evento = st.radio(
+        "¿Tiene evento?",
+        [
+            "Sin evento",
+            "Con evento"
+        ],
+        horizontal=True
+    )
+
+    # Valores iniciales
+    estado_evento = ""
+    accion_realizada = ""
+    codigo_carta = ""
+
+    # =====================================================
+    # SI TIENE EVENTO
+    # =====================================================
+
+    if tiene_evento == "Con evento":
+
+        st.subheader("📋 Estado del evento")
+
+        estado_evento = st.radio(
+            "Estado",
+            [
+                "Ya licenciado",
+                "Detectado sin licenciar"
+            ],
+            horizontal=True
+        )
+
+        # =================================================
+        # DETECTADO SIN LICENCIAR
+        # =================================================
+
+        if estado_evento == "Detectado sin licenciar":
+
+            st.subheader("⚠️ Acción realizada")
+
+            accion_realizada = st.radio(
+                "¿Qué se realizó en ruta?",
+                [
+                    "Licenciado en ruta",
+                    "Se dejó carta de notificación"
+                ],
+                horizontal=True
+            )
+
+            # =============================================
+            # CARTA DE NOTIFICACIÓN
+            # =============================================
+
+            if accion_realizada == "Se dejó carta de notificación":
+
+                codigo_carta = st.text_input(
+                    "Código de carta",
+                    placeholder="Ejemplo: NT-004582"
+                )
+
+                st.info(
+                    "📷 Toma una fotografía de la carta "
+                    "como evidencia."
+                )
+
+    # =====================================================
+    # FOTO DE EVIDENCIA
+    # =====================================================
+
+    st.subheader("📷 Evidencia")
+
     foto = st.camera_input(
-        "📸 Tomar foto de evidencia"
+        "📸 Tomar foto"
     )
 
     foto_bytes = None
@@ -1102,98 +1119,6 @@ elif opcion == "🚗 Visitas":
             )
 
     # =====================================================
-    # RESULTADO
-    # =====================================================
-
-    st.subheader("📝 Resultado de la visita")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        resultado = st.selectbox(
-            "Resultado de la visita",
-            [
-                "Encontrado",
-                "No encontrado",
-                "Cerrado",
-                "No corresponde",
-                "Reprogramar"
-            ]
-        )
-
-        tipo_evento = st.selectbox(
-            "Tipo de evento",
-            [
-                "Medios mecánicos",
-                "Medios humanos",
-                "Concierto",
-                "Costumbrista",
-                "Quinceañero",
-                "Matrimonio",
-                "Cumpleaños",
-                "Evangelístico",
-                "Circus",
-                "Otro"
-            ]
-        )
-
-        medio = st.selectbox(
-            "Medio",
-            [
-                "Medios mecánicos",
-                "Medios humanos"
-            ]
-        )
-
-        artista = st.text_input(
-            "Artista / Banda / Grupo"
-        )
-
-        monto = st.number_input(
-            "Monto",
-            min_value=0.0,
-            step=10.0
-        )
-
-        tarifa = st.number_input(
-            "Tarifa",
-            min_value=0.0,
-            step=10.0
-        )
-
-    with col2:
-
-        pago = st.selectbox(
-            "Pago",
-            [
-                "Pendiente",
-                "Pagado",
-                "No aplica"
-            ]
-        )
-
-        banco = st.text_input(
-            "Banco"
-        )
-
-        operacion = st.text_input(
-            "N.º operación"
-        )
-
-        promotor = st.text_input(
-            "Promotor"
-        )
-
-        telefono = st.text_input(
-            "Teléfono"
-        )
-
-    observaciones = st.text_area(
-        "Observaciones"
-    )
-
-    # =====================================================
     # RESUMEN
     # =====================================================
 
@@ -1207,22 +1132,22 @@ elif opcion == "🚗 Visitas":
     )
 
     col2.metric(
-        "Resultado",
-        resultado
+        "Evento",
+        tiene_evento
     )
 
     col3.metric(
+        "Estado",
+        estado_evento if estado_evento else "-"
+    )
+
+    col4.metric(
         "Foto",
         "Sí" if foto_bytes else "No"
     )
 
-    col4.metric(
-        "GPS",
-        "Sí" if latitud else "No"
-    )
-
     # =====================================================
-    # GUARDAR VISITA
+    # GUARDAR
     # =====================================================
 
     if st.button(
@@ -1230,6 +1155,10 @@ elif opcion == "🚗 Visitas":
         type="primary",
         use_container_width=True
     ):
+
+        # -----------------------------------------------
+        # VALIDAR LOCAL
+        # -----------------------------------------------
 
         if not local.strip():
 
@@ -1239,24 +1168,48 @@ elif opcion == "🚗 Visitas":
 
             st.stop()
 
-        if not documento.strip():
+        # -----------------------------------------------
+        # VALIDAR CARTA
+        # -----------------------------------------------
 
-            st.warning(
-                "⚠️ No has ingresado RUC/DNI. "
-                "Puedes continuar si no cuentas con el dato."
-            )
+        if (
+            tiene_evento == "Con evento"
+            and estado_evento == "Detectado sin licenciar"
+            and accion_realizada == "Se dejó carta de notificación"
+        ):
 
-        # -------------------------------------------------
-        # VERIFICAR DUPLICADO
-        # -------------------------------------------------
+            if not codigo_carta.strip():
+
+                st.error(
+                    "⚠️ Debes ingresar el código de la carta."
+                )
+
+                st.stop()
+
+            if not foto_bytes:
+
+                st.error(
+                    "⚠️ Debes tomar una foto de la carta "
+                    "como evidencia."
+                )
+
+                st.stop()
+
+        # -----------------------------------------------
+        # GESTOR
+        # -----------------------------------------------
 
         gestor = st.session_state.get(
             "codigo_gestor",
             ""
         )
 
+        # -----------------------------------------------
+        # DUPLICADO
+        # -----------------------------------------------
+
         duplicado = visita_ya_registrada_hoy(
-            documento=documento,
+            documento="",
             local=local,
             gestor=gestor,
             fecha_visita=fecha_visita
@@ -1277,12 +1230,13 @@ elif opcion == "🚗 Visitas":
 
                 st.stop()
 
-        # -------------------------------------------------
-        # DATOS
-        # -------------------------------------------------
+        # -----------------------------------------------
+        # DATOS A FIREBASE
+        # -----------------------------------------------
 
         datos = {
 
+            # VISITA
             "fecha_visita": fecha_visita,
 
             "hora_visita": hora_visita,
@@ -1291,55 +1245,17 @@ elif opcion == "🚗 Visitas":
                 f"{fecha_visita} {hora_visita}",
 
             # LOCAL
-            "local": local,
+            "local": local.strip(),
 
-            "nombre": nombre,
+            # EVENTO
+            "tiene_evento": tiene_evento,
 
-            "documento": documento,
+            "estado_evento": estado_evento,
 
-            "direccion": direccion,
+            "accion_realizada": accion_realizada,
 
-            "distrito": distrito,
-
-            "departamento": departamento,
-
-            "provincia": provincia,
-
-            "tipo_establecimiento":
-                tipo_establecimiento,
-
-            "tipo_facturacion":
-                tipo_facturacion,
-
-            # VISITA
-            "resultado": resultado,
-
-            "fecha_evento":
-                str(fecha_evento)
-                if "fecha_evento" in locals()
-                else "",
-
-            "tipo_evento": tipo_evento,
-
-            "medio": medio,
-
-            "artista": artista,
-
-            "monto": monto,
-
-            "tarifa": tarifa,
-
-            "pago": pago,
-
-            "banco": banco,
-
-            "operacion": operacion,
-
-            "promotor": promotor,
-
-            "telefono": telefono,
-
-            "observaciones": observaciones,
+            # CARTA
+            "codigo_carta": codigo_carta.strip(),
 
             # GESTOR
             "gestor": gestor,
@@ -1360,18 +1276,31 @@ elif opcion == "🚗 Visitas":
 
         guardar_visita(datos)
 
+        # -----------------------------------------------
+        # CONFIRMACIÓN
+        # -----------------------------------------------
+
         st.success(
             "✅ VISITA REGISTRADA CORRECTAMENTE"
         )
 
         st.info(
-            f"📍 Local: {local}\n\n"
+            f"🏪 Local: {local}\n\n"
+            f"🎵 Evento: {tiene_evento}\n\n"
+            f"📋 Estado: "
+            f"{estado_evento if estado_evento else 'No aplica'}\n\n"
+            f"📝 Acción: "
+            f"{accion_realizada if accion_realizada else 'No aplica'}\n\n"
+            f"🔖 Código de carta: "
+            f"{codigo_carta if codigo_carta else 'No aplica'}\n\n"
             f"🕐 Hora: {hora_visita}\n\n"
             f"📷 Evidencia: "
             f"{'Sí' if foto_bytes else 'No'}\n\n"
             f"📍 GPS: "
             f"{'Sí' if latitud else 'No'}"
         )
+
+
 # =========================================================
 # LOCALES
 # =========================================================
