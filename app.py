@@ -158,7 +158,9 @@ def obtener_locales():
 
 def guardar_local(datos, documento_id=None):
 
-    datos["actualizado"] = datetime.now(ZoneInfo("America/Lima")).isoformat()
+    datos["actualizado"] = datetime.now(
+        ZoneInfo("America/Lima")).
+    isoformat()
     if documento_id:
 
         db.collection("locales").document(
@@ -181,7 +183,9 @@ def guardar_local(datos, documento_id=None):
 
 def guardar_facturacion(datos):
 
-    datos["fecha_registro"] = datetime.now(ZoneInfo("America/Lima")).isoformat()
+    datos["fecha_registro"] = datetime.now(
+        ZoneInfo("America/Lima"))
+    .isoformat()
 
     db.collection("facturacion").add(datos)
 
@@ -311,7 +315,9 @@ def visita_ya_registrada_hoy(
 
 def guardar_visita(datos):
 
-    datos["fecha_registro"] = datetime.now(ZoneInfo("America/Lima")).isoformat()
+    datos["fecha_registro"] = datetime.now(
+        ZoneInfo("America/Lima"))
+    .isoformat()
 
     db.collection("visitas").add(datos)
 
@@ -1230,7 +1236,9 @@ elif opcion == "🚗 Visitas":
     # FECHA Y HORA AUTOMÁTICAS
     # =====================================================
 
-   ahora = datetime.now(ZoneInfo("America/Lima"))
+   ahora = datetime.now(
+       ZoneInfo("America/Lima")
+   )
 
    fecha_visita = str(ahora.date())
    hora_visita = ahora.strftime("%H:%M:%S")
