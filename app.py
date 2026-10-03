@@ -247,44 +247,31 @@ def preparar_foto(foto):
 # VERIFICAR DUPLICADO DE VISITA
 # =========================================================
 
-def visita_ya_registrada_hoy(
-    documento,
-    local,
-    gestor,
-    fecha_visita
-):
+def guardar_visita(datos):
 
-    docs = db.collection("visitas").stream()
+    datos["fecha_registro"] = datetime.now(
+        ZoneInfo("America/Lima")
+    ).isoformat()
 
-    for doc in docs:
+    try:
 
-        datos = doc.to_dict()
+        referencia = db.collection("visitas").document()
 
-        mismo_dia = (
-            datos.get("fecha_visita")
-            == fecha_visita
+        referencia.set(datos)
+
+        return referencia.id
+
+    except Exception as e:
+
+        st.error(
+            "❌ No se pudo guardar la visita en Firebase."
         )
 
-        mismo_gestor = (
-            datos.get("gestor")
-            == gestor
+        st.code(
+            f"{type(e).__name__}: {e}"
         )
 
-        mismo_local = (
-            str(datos.get("local", "")).strip().lower()
-            == str(local).strip().lower()
-        )
-
-        if (
-            mismo_dia
-            and mismo_gestor
-            and mismo_local
-        ):
-
-            return True
-
-    return False
-
+        return None
 # =========================================================
 # GUARDAR VISITA
 # =========================================================
