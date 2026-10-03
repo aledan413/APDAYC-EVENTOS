@@ -297,16 +297,44 @@ def guardar_visita(datos):
 
     try:
 
-        referencia, _ = db.collection("visitas").add(datos)
+        resultado = db.collection("visitas").add(datos)
 
-        return referencia.id
+        # Firebase normalmente devuelve:
+        # (DocumentReference, WriteResult)
+
+        referencia = resultado[0]
+
+        # Verificar que realmente sea una referencia
+        # de documento antes de obtener el ID.
+
+        if hasattr(referencia, "id"):
+
+            return referencia.id
+
+        else:
+
+            st.error(
+                "❌ Firebase guardó la operación, "
+                "pero no devolvió correctamente el ID de la visita."
+            )
+
+            st.code(
+                f"Tipo recibido: {type(referencia)}"
+            )
+
+            return None
 
     except Exception as e:
 
-        st.error("❌ No se pudo guardar la visita en Firebase.")
-        st.code(str(e))
-        return None
+        st.error(
+            "❌ No se pudo guardar la visita en Firebase."
+        )
 
+        st.code(
+            f"{type(e).__name__}: {e}"
+        )
+
+        return None
 
 # =========================================================
 # WHATSAPP
