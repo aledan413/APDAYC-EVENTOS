@@ -159,8 +159,8 @@ def obtener_locales():
 def guardar_local(datos, documento_id=None):
 
     datos["actualizado"] = datetime.now(
-        ZoneInfo("America/Lima"))
-    isoformat()
+        ZoneInfo("America/Lima")
+    ).isoformat()
     if documento_id:
 
         db.collection("locales").document(
@@ -197,8 +197,9 @@ def guardar_facturacion(datos):
 def preparar_foto(foto):
 
     """
-    Convierte la foto a JPG comprimido para que
-    pueda guardarse dentro del documento de Firebase.
+    Convierte la foto a JPG comprimido y la deja
+    suficientemente pequeña para guardarla junto
+    con la visita en Firebase.
     """
 
     try:
@@ -207,54 +208,38 @@ def preparar_foto(foto):
 
         # Convertir a RGB
         if imagen.mode != "RGB":
-
             imagen = imagen.convert("RGB")
 
-        # Reducir tamaño máximo
-        max_lado = 1280
+        # Reducir tamaño para que la visita no supere
+        # el límite de Firestore.
+        max_lado = 1200
 
         if max(imagen.size) > max_lado:
+            imagen.thumbnail((max_lado, max_lado))
 
-            imagen.thumbnail(
-                (max_lado, max_lado)
-            )
-
-        salida = BytesIO()
-
-        calidad = 75
-
-        imagen.save(
-            salida,
-            format="JPEG",
-            quality=calidad,
-            optimize=True
-        )
-
-        foto_bytes = salida.getvalue()
-
-        # Firebase Firestore tiene límite de tamaño por documento.
-        # Dejamos margen de seguridad.
-        if len(foto_bytes) > 850000:
+        # Intentar varias calidades hasta obtener
+        # una foto segura para Firestore.
+        for calidad in [70, 55, 45, 35]:
 
             salida = BytesIO()
 
             imagen.save(
                 salida,
                 format="JPEG",
-                quality=55,
+                quality=calidad,
                 optimize=True
             )
 
             foto_bytes = salida.getvalue()
 
-        if len(foto_bytes) > 950000:
+            # Dejamos bastante margen para los demás
+            # campos de la visita.
+            if len(foto_bytes) <= 500000:
+                return foto_bytes
 
-            return None
-
-        return foto_bytes
+        return None
 
     except Exception:
-
         return None
 
 
@@ -319,7 +304,17 @@ def guardar_visita(datos):
         ZoneInfo("America/Lima")
     ).isoformat()
 
-    db.collection("visitas").add(datos)
+    try:
+
+        referencia, _ = db.collection("visitas").add(datos)
+
+        return referencia.id
+
+    except Exception as e:
+
+        st.error("❌ No se pudo guardar la visita en Firebase.")
+        st.code(str(e))
+        return None
 
 
 # =========================================================
@@ -463,6 +458,98 @@ def crear_excel():
             index=False,
             sheet_name="Facturacion"
         )
+
+        df_visitas.to_excel(
+            writer,
+            index=False,
+            sheet_name="Visitas"
+        )
+
+    salida.seek(0)
+
+    return salida
+
+
+# =========================================================
+# EXPORTAR SOLO VISITAS
+# =========================================================
+
+def crear_excel_visitas():
+
+    visitas = []
+
+    docs_visitas = (
+        db.collection("visitas")
+        .stream()
+    )
+
+    for doc in docs_visitas:
+
+        datos = doc.to_dict()
+
+        datos["id"] = doc.id
+
+        # La foto no se mete como archivo binario
+        # dentro del Excel. Se registra si existe.
+        if "foto_evidencia" in datos:
+
+            if datos["foto_evidencia"]:
+                datos["evidencia_foto"] = "Sí - foto guardada"
+            else:
+                datos["evidencia_foto"] = "No"
+
+            del datos["foto_evidencia"]
+
+        visitas.append(datos)
+
+    df_visitas = pd.DataFrame(visitas)
+
+    # Orden recomendado para el trabajo de ruta.
+    columnas_preferidas = [
+        "id",
+        "fecha_visita",
+        "hora_visita",
+        "fecha_hora_visita",
+        "gestor",
+        "local",
+        "tiene_evento",
+        "estado_evento",
+        "accion_realizada",
+        "codigo_carta",
+        "evidencia_foto",
+        "latitud",
+        "longitud",
+        "precision_gps",
+        "fecha_registro"
+    ]
+
+    columnas_finales = [
+        c for c in columnas_preferidas
+        if c in df_visitas.columns
+    ]
+
+    otras_columnas = [
+        c for c in df_visitas.columns
+        if c not in columnas_finales
+    ]
+
+    if not df_visitas.empty:
+        df_visitas = df_visitas[
+            columnas_finales + otras_columnas
+        ]
+
+        if "fecha_hora_visita" in df_visitas.columns:
+            df_visitas = df_visitas.sort_values(
+                by="fecha_hora_visita",
+                ascending=False
+            )
+
+    salida = BytesIO()
+
+    with pd.ExcelWriter(
+        salida,
+        engine="openpyxl"
+    ) as writer:
 
         df_visitas.to_excel(
             writer,
@@ -1559,17 +1646,19 @@ elif opcion == "🚗 Visitas":
                 True if foto_bytes else False
         }
 
-        guardar_visita(datos)
+        id_visita = guardar_visita(datos)
 
         # -----------------------------------------------
         # CONFIRMACIÓN
         # -----------------------------------------------
 
-        st.success(
-            "✅ VISITA REGISTRADA CORRECTAMENTE"
-        )
+        if id_visita:
 
-        st.info(
+            st.success(
+                "✅ VISITA REGISTRADA CORRECTAMENTE"
+            )
+
+            st.info(
             f"🏪 Local: {local}\n\n"
             f"🎵 Evento: {tiene_evento}\n\n"
             f"📋 Estado: "
@@ -1582,8 +1671,30 @@ elif opcion == "🚗 Visitas":
             f"📷 Evidencia: "
             f"{'Sí' if foto_bytes else 'No'}\n\n"
             f"📍 GPS: "
-            f"{'Sí' if latitud else 'No'}"
-        )
+                f"{'Sí' if latitud else 'No'}"
+            )
+
+            # Excel actualizado inmediatamente después de guardar.
+            st.download_button(
+                label="📊 Descargar Excel de visitas",
+                data=crear_excel_visitas(),
+                file_name=(
+                    f"APDAYC_Visitas_"
+                    f"{date.today()}.xlsx"
+                ),
+                mime=(
+                    "application/vnd.openxmlformats-"
+                    "officedocument.spreadsheetml.sheet"
+                ),
+                use_container_width=True
+            )
+
+        else:
+
+            st.error(
+                "❌ La visita NO quedó registrada. "
+                "Revisa el error de Firebase mostrado arriba."
+            )
 
 
 # =========================================================
@@ -1714,28 +1825,53 @@ elif opcion == "📥 Exportar Excel":
     )
 
     st.write(
-        "El archivo contiene dos pestañas:"
+        "Puedes descargar el Excel general o solamente el "
+        "registro de visitas."
     )
 
-    st.write(
-        "1. Facturacion"
-    )
+    st.subheader("📊 Excel general")
 
     st.write(
-        "2. Visitas"
+        "Incluye las pestañas Facturacion y Visitas."
     )
 
     if st.button(
-        "📊 Generar Excel"
+        "📊 Generar Excel general"
     ):
 
         archivo = crear_excel()
 
         st.download_button(
-            label="⬇️ Descargar Excel",
+            label="⬇️ Descargar Excel general",
             data=archivo,
             file_name=(
                 f"APDAYC_Eventos_"
+                f"{date.today()}.xlsx"
+            ),
+            mime=(
+                "application/vnd.openxmlformats-"
+                "officedocument.spreadsheetml.sheet"
+            )
+        )
+
+    st.subheader("🚗 Excel de visitas")
+
+    st.write(
+        "Este archivo contiene únicamente las visitas "
+        "registradas y marca si cada visita tiene foto."
+    )
+
+    if st.button(
+        "🚗 Generar Excel de visitas"
+    ):
+
+        archivo_visitas = crear_excel_visitas()
+
+        st.download_button(
+            label="⬇️ Descargar Excel de visitas",
+            data=archivo_visitas,
+            file_name=(
+                f"APDAYC_Visitas_"
                 f"{date.today()}.xlsx"
             ),
             mime=(
