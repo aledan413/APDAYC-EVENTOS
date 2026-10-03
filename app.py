@@ -270,11 +270,6 @@ def visita_ya_registrada_hoy(
             == gestor
         )
 
-        mismo_documento = (
-            str(datos.get("documento", "")).strip()
-            == str(documento).strip()
-        )
-
         mismo_local = (
             str(datos.get("local", "")).strip().lower()
             == str(local).strip().lower()
@@ -283,16 +278,12 @@ def visita_ya_registrada_hoy(
         if (
             mismo_dia
             and mismo_gestor
-            and (
-                mismo_documento
-                or mismo_local
-            )
+            and mismo_local
         ):
 
             return True
 
     return False
-
 
 # =========================================================
 # GUARDAR VISITA
