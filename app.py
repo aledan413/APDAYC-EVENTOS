@@ -302,17 +302,17 @@ def guardar_visita(datos):
         )
 
         # Firebase devuelve:
-        # (DocumentReference, WriteResult)
+        # (update_time, DocumentReference)
 
-        referencia = resultado[0]
+        referencia = resultado[1]
 
         if hasattr(referencia, "id"):
 
             return referencia.id
 
         st.error(
-            "❌ Firebase guardó la operación, "
-            "pero no devolvió correctamente el ID."
+            "❌ Firebase guardó la visita, "
+            "pero no se pudo obtener el ID."
         )
 
         st.code(
