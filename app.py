@@ -247,69 +247,79 @@ def preparar_foto(foto):
 # VERIFICAR DUPLICADO DE VISITA
 # =========================================================
 
-def guardar_visita(datos):
-
-    datos["fecha_registro"] = datetime.now(
-        ZoneInfo("America/Lima")
-    ).isoformat()
+def visita_ya_registrada_hoy(documento="", local="", gestor="", fecha_visita=""):
 
     try:
+        docs = (
+            db.collection("visitas")
+            .where("fecha_visita", "==", fecha_visita)
+            .where("gestor", "==", gestor)
+            .stream()
+        )
 
-        referencia = db.collection("visitas").document()
+        local_busqueda = local.strip().lower()
 
-        referencia.set(datos)
+        for doc in docs:
+            datos = doc.to_dict()
 
-        return referencia.id
+            local_guardado = str(
+                datos.get("local", "")
+            ).strip().lower()
+
+            if local_guardado == local_busqueda:
+                return True
+
+        return False
 
     except Exception as e:
 
         st.error(
-            "❌ No se pudo guardar la visita en Firebase."
+            "❌ Error al verificar si la visita ya existe."
         )
 
         st.code(
             f"{type(e).__name__}: {e}"
         )
 
-        return None
+        return False
+
+
 # =========================================================
 # GUARDAR VISITA
 # =========================================================
 
 def guardar_visita(datos):
 
-    datos["fecha_registro"] = datetime.now(
-        ZoneInfo("America/Lima")
-    ).isoformat()
-
     try:
 
-        resultado = db.collection("visitas").add(datos)
+        datos["fecha_registro"] = datetime.now(
+            ZoneInfo("America/Lima")
+        ).isoformat()
 
-        # Firebase normalmente devuelve:
+        resultado = (
+            db.collection("visitas")
+            .add(datos)
+        )
+
+        # Firebase devuelve:
         # (DocumentReference, WriteResult)
 
         referencia = resultado[0]
-
-        # Verificar que realmente sea una referencia
-        # de documento antes de obtener el ID.
 
         if hasattr(referencia, "id"):
 
             return referencia.id
 
-        else:
+        st.error(
+            "❌ Firebase guardó la operación, "
+            "pero no devolvió correctamente el ID."
+        )
 
-            st.error(
-                "❌ Firebase guardó la operación, "
-                "pero no devolvió correctamente el ID de la visita."
-            )
+        st.code(
+            f"Tipo recibido: {type(referencia)}"
+        )
 
-            st.code(
-                f"Tipo recibido: {type(referencia)}"
-            )
-
-            return None
+        return None
 
     except Exception as e:
 
@@ -322,7 +332,6 @@ def guardar_visita(datos):
         )
 
         return None
-
 # =========================================================
 # WHATSAPP
 # =========================================================
