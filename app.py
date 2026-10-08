@@ -233,15 +233,22 @@ def guardar_facturacion(datos):
 
 
 # =========================================================
-# PREPARAR FOTO
+# PREPARAR FOTO CON DATOS DE VISITA
 # =========================================================
 
-def preparar_foto(foto):
+def preparar_foto(
+    foto,
+    local="",
+    fecha="",
+    hora="",
+    latitud="",
+    longitud="",
+    gestor=""
+):
 
     """
-    Convierte la foto a JPG comprimido y la deja
-    suficientemente pequeña para guardarla junto
-    con la visita en Firebase.
+    Prepara la fotografía y coloca una franja inferior
+    con los datos de la visita.
     """
 
     try:
@@ -252,39 +259,159 @@ def preparar_foto(foto):
         if imagen.mode != "RGB":
             imagen = imagen.convert("RGB")
 
-        # Reducir tamaño para que la visita no supere
-        # el límite de Firestore.
+        # Reducir tamaño
         max_lado = 1200
 
         if max(imagen.size) > max_lado:
-            imagen.thumbnail((max_lado, max_lado))
+            imagen.thumbnail(
+                (max_lado, max_lado)
+            )
 
-        # Intentar varias calidades hasta obtener
-        # una foto segura para Firestore.
-        for calidad in [70, 55, 45, 35]:
+        # =================================================
+        # CREAR FRANJA INFERIOR
+        # =================================================
+
+        from PIL import ImageDraw, ImageFont
+
+        ancho, alto = imagen.size
+
+        alto_franja = 125
+
+        nueva_imagen = Image.new(
+            "RGB",
+            (
+                ancho,
+                alto + alto_franja
+            ),
+            "white"
+        )
+
+        nueva_imagen.paste(
+            imagen,
+            (0, 0)
+        )
+
+        draw = ImageDraw.Draw(
+            nueva_imagen
+        )
+
+        # =================================================
+        # FUENTE
+        # =================================================
+
+        try:
+
+            fuente = ImageFont.truetype(
+                "DejaVuSans.ttf",
+                20
+            )
+
+            fuente_pequena = ImageFont.truetype(
+                "DejaVuSans.ttf",
+                17
+            )
+
+        except:
+
+            fuente = ImageFont.load_default()
+
+            fuente_pequena = fuente
+
+        # =================================================
+        # DATOS
+        # =================================================
+
+        texto_local = (
+            f"{local}"
+        )
+
+        texto_gps = (
+            f"GPS: {latitud}, {longitud}"
+            if latitud and longitud
+            else "GPS: No disponible"
+        )
+
+        texto_fecha = (
+            f"{fecha} · {hora}"
+        )
+
+        texto_gestor = (
+            f"Gestor: {gestor}"
+            if gestor
+            else "Gestor"
+        )
+
+        # =================================================
+        # ESCRIBIR INFORMACIÓN
+        # =================================================
+
+        x = 20
+
+        draw.text(
+            (x, alto + 10),
+            texto_local,
+            fill="black",
+            font=fuente
+        )
+
+        draw.text(
+            (x, alto + 38),
+            texto_gps,
+            fill="black",
+            font=fuente_pequena
+        )
+
+        draw.text(
+            (x, alto + 64),
+            texto_fecha,
+            fill="black",
+            font=fuente_pequena
+        )
+
+        draw.text(
+            (x, alto + 90),
+            texto_gestor,
+            fill="black",
+            font=fuente_pequena
+        )
+
+        # =================================================
+        # COMPRIMIR
+        # =================================================
+
+        for calidad in [
+            70,
+            55,
+            45,
+            35
+        ]:
 
             salida = BytesIO()
 
-            imagen.save(
+            nueva_imagen.save(
                 salida,
                 format="JPEG",
                 quality=calidad,
                 optimize=True
             )
 
-            foto_bytes = salida.getvalue()
+            foto_bytes = (
+                salida.getvalue()
+            )
 
-            # Dejamos bastante margen para los demás
-            # campos de la visita.
             if len(foto_bytes) <= 500000:
+
                 return foto_bytes
 
         return None
 
-    except Exception:
+    except Exception as e:
+
+        st.error(
+            f"❌ No se pudo preparar la fotografía: {e}"
+        )
+
         return None
-
-
 # =========================================================
 # VERIFICAR DUPLICADO DE VISITA
 # =========================================================
@@ -408,33 +535,140 @@ OBSERVACIONES:
 
     return mensaje
 
+def boton_compartir_foto_whatsapp(
+    foto_bytes,
+    local,
+    fecha,
+    hora
+):
 
-def boton_copiar_whatsapp(texto):
+    import base64
 
-    texto_js = (
-        texto
+    imagen_base64 = base64.b64encode(
+        foto_bytes
+    ).decode("utf-8")
+
+    mensaje = (
+        f"Visita - {local}\n"
+        f"Fecha: {fecha}\n"
+        f"Hora: {hora}"
+    )
+
+    mensaje_js = (
+        mensaje
         .replace("\\", "\\\\")
         .replace("`", "\\`")
     )
 
     html = f"""
     <button
-        onclick="navigator.clipboard.writeText(`{texto_js}`)"
+        id="compartir"
         style="
-            padding:10px 18px;
+            width:100%;
+            padding:12px;
             border:none;
             border-radius:8px;
             cursor:pointer;
-            font-size:16px;
+            font-size:17px;
+            font-weight:bold;
         "
     >
-        📋 Copiar mensaje para WhatsApp
+        📲 Compartir foto por WhatsApp
     </button>
+
+    <script>
+
+    document
+        .getElementById("compartir")
+        .onclick = async function() {{
+
+            try {{
+
+                const base64 =
+                    "{imagen_base64}";
+
+                const byteCharacters =
+                    atob(base64);
+
+                const byteNumbers =
+                    new Array(
+                        byteCharacters.length
+                    );
+
+                for (
+                    let i = 0;
+                    i < byteCharacters.length;
+                    i++
+                ) {{
+
+                    byteNumbers[i] =
+                        byteCharacters.charCodeAt(i);
+                }}
+
+                const byteArray =
+                    new Uint8Array(
+                        byteNumbers
+                    );
+
+                const blob =
+                    new Blob(
+                        [byteArray],
+                        {{
+                            type: "image/jpeg"
+                        }}
+                    );
+
+                const archivo =
+                    new File(
+                        [blob],
+                        "APDAYC_{local}.jpg",
+                        {{
+                            type: "image/jpeg"
+                        }}
+                    );
+
+                const texto =
+                    `{mensaje_js}`;
+
+                if (
+                    navigator.share &&
+                    navigator.canShare &&
+                    navigator.canShare({{
+                        files: [archivo]
+                    }})
+                ) {{
+
+                    await navigator.share({{
+                        title: "APDAYC",
+                        text: texto,
+                        files: [archivo]
+                    }});
+
+                }} else {{
+
+                    alert(
+                        "Tu navegador no permite compartir "
+                        + "la fotografía directamente. "
+                        + "Puedes descargarla y enviarla "
+                        + "por WhatsApp."
+                    );
+
+                }}
+
+            }} catch(error) {{
+
+                console.log(error);
+
+            }}
+
+        }};
+
+    </script>
     """
 
     components.html(
         html,
-        height=55
+        height=65
     )
 
 
@@ -1564,41 +1798,56 @@ elif opcion == "🚗 Visitas":
                     "como evidencia."
                 )
 
-    # =====================================================
-    # FOTO DE EVIDENCIA
-    # =====================================================
+  # =====================================================
+# FOTO DEL LOCAL
+# =====================================================
 
-    st.subheader("📷 Evidencia")
+st.subheader("📷 Foto del local")
 
-    foto = st.camera_input(
-        "📸 Tomar foto"
+foto = st.camera_input(
+    "📸 Tomar foto"
+)
+
+foto_bytes = None
+
+if foto is not None:
+
+    # =================================================
+    # PREPARAR FOTO CON INFORMACIÓN
+    # =================================================
+
+    gestor_actual = st.session_state.get(
+        "codigo_gestor",
+        ""
     )
 
-    foto_bytes = None
+    foto_bytes = preparar_foto(
+        foto=foto,
+        local=local.strip(),
+        fecha=fecha_visita,
+        hora=hora_visita,
+        latitud=latitud,
+        longitud=longitud,
+        gestor=gestor_actual
+    )
 
-    if foto is not None:
+    if foto_bytes is not None:
+
+        st.success(
+            "📸 Foto preparada correctamente."
+        )
 
         st.image(
-            foto,
-            caption="Vista previa de la evidencia",
+            foto_bytes,
+            caption="Foto del local",
             use_container_width=True
         )
 
-        foto_bytes = preparar_foto(
-            foto
+    else:
+
+        st.error(
+            "❌ No se pudo preparar la fotografía."
         )
-
-        if foto_bytes is not None:
-
-            st.success(
-                "📸 Foto preparada correctamente."
-            )
-
-        else:
-
-            st.error(
-                "❌ No se pudo preparar la fotografía."
-            )
 
     # =====================================================
     # RESUMEN
