@@ -1831,38 +1831,42 @@ elif opcion == "🚗 Visitas":
             gestor=gestor_actual
         )
 
-        if foto_bytes is not None:
+          if foto_bytes is not None:
 
-            st.success(
-                "📸 Foto preparada correctamente."
-            )
+        st.success(
+            "📸 Foto preparada correctamente."
+        )
 
-            st.image(
-                foto_bytes,
-                caption="Foto del local",
-                use_container_width=True
-            )
-    st.subheader("📲 Foto lista para enviar")
+        st.image(
+            foto_bytes,
+            caption="Foto del local",
+            use_container_width=True
+        )
 
-    st.download_button(
-        label="⬇️ Descargar foto",
-        data=foto_bytes,
-        file_name=f"APDAYC_{local.strip()}.jpg",
-        mime="image/jpeg",
-        use_container_width=True
-    )
+        st.subheader(
+            "📲 Foto lista para enviar"
+        )
 
-    boton_compartir_foto_whatsapp(
-        foto_bytes=foto_bytes,
-        local=local.strip(),
-        fecha=fecha_visita,
-        hora=hora_visita
-    )
-        else:
+        st.download_button(
+            label="⬇️ Descargar foto",
+            data=foto_bytes,
+            file_name=f"APDAYC_{local.strip()}.jpg",
+            mime="image/jpeg",
+            use_container_width=True
+        )
 
-            st.error(
-                "❌ No se pudo preparar la fotografía."
-            )
+        boton_compartir_foto_whatsapp(
+            foto_bytes=foto_bytes,
+            local=local.strip(),
+            fecha=fecha_visita,
+            hora=hora_visita
+        )
+
+    else:
+
+        st.error(
+            "❌ No se pudo preparar la fotografía."
+        )
     # =====================================================
     # RESUMEN
     # =====================================================
