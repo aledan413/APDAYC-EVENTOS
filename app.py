@@ -1810,11 +1810,7 @@ elif opcion == "🚗 Visitas":
 
     foto_bytes = None
 
-    if foto is not None:
-
-        # =================================================
-        # PREPARAR FOTO CON INFORMACIÓN
-        # =================================================
+         if foto is not None:
 
         gestor_actual = st.session_state.get(
             "codigo_gestor",
@@ -1831,42 +1827,42 @@ elif opcion == "🚗 Visitas":
             gestor=gestor_actual
         )
 
-          if foto_bytes is not None:
+        if foto_bytes is not None:
 
-        st.success(
-            "📸 Foto preparada correctamente."
-        )
+            st.success(
+                "📸 Foto preparada correctamente."
+            )
 
-        st.image(
-            foto_bytes,
-            caption="Foto del local",
-            use_container_width=True
-        )
+            st.image(
+                foto_bytes,
+                caption="Foto del local",
+                use_container_width=True
+            )
 
-        st.subheader(
-            "📲 Foto lista para enviar"
-        )
+            st.subheader(
+                "📲 Foto lista para enviar"
+            )
 
-        st.download_button(
-            label="⬇️ Descargar foto",
-            data=foto_bytes,
-            file_name=f"APDAYC_{local.strip()}.jpg",
-            mime="image/jpeg",
-            use_container_width=True
-        )
+            st.download_button(
+                label="⬇️ Descargar foto",
+                data=foto_bytes,
+                file_name=f"APDAYC_{local.strip()}.jpg",
+                mime="image/jpeg",
+                use_container_width=True
+            )
 
-        boton_compartir_foto_whatsapp(
-            foto_bytes=foto_bytes,
-            local=local.strip(),
-            fecha=fecha_visita,
-            hora=hora_visita
-        )
+            boton_compartir_foto_whatsapp(
+                foto_bytes=foto_bytes,
+                local=local.strip(),
+                fecha=fecha_visita,
+                hora=hora_visita
+            )
 
-    else:
+        else:
 
-        st.error(
-            "❌ No se pudo preparar la fotografía."
-        )
+            st.error(
+                "❌ No se pudo preparar la fotografía."
+            )   
     # =====================================================
     # RESUMEN
     # =====================================================
