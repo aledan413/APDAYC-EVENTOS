@@ -2243,7 +2243,7 @@ elif opcion == "📥 Exportar Excel":
         "registradas y marca si cada visita tiene foto."
     )
 
-       if st.button(
+    if st.button(
         "🚗 Generar Excel de visitas"
     ):
 
