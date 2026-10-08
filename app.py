@@ -914,11 +914,30 @@ if not st.session_state.logueado:
                     resultado.get("localId", "")
                 )
 
-                # Código temporal del gestor piloto
-                st.session_state.codigo_gestor = "LN14"
+                # =====================================================
+                # IDENTIFICAR GESTOR SEGÚN SU CORREO
+                # =====================================================
+
+                correo_usuario = (
+                    resultado.get("email", email)
+                    .strip()
+                    .lower()
+                )
+
+                if correo_usuario == "aldedan413@gmail.com":
+
+                    st.session_state.codigo_gestor = "LN14"
+
+                elif correo_usuario == "agecoferln19@gmail.com":
+
+                    st.session_state.codigo_gestor = "LN19"
+
+                else:
+
+                    st.session_state.codigo_gestor = ""
 
                 st.rerun()
-
+           
             else:
 
                 error = resultado.get(
