@@ -1810,7 +1810,7 @@ elif opcion == "🚗 Visitas":
 
     foto_bytes = None
 
-         if foto is not None:
+    if foto is not None:
 
         gestor_actual = st.session_state.get(
             "codigo_gestor",
