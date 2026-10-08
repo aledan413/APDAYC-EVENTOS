@@ -1798,57 +1798,56 @@ elif opcion == "🚗 Visitas":
                     "como evidencia."
                 )
 
-  # =====================================================
-# FOTO DEL LOCAL
-# =====================================================
+    # =====================================================
+    # FOTO DEL LOCAL
+    # =====================================================
 
-st.subheader("📷 Foto del local")
+    st.subheader("📷 Foto del local")
 
-foto = st.camera_input(
-    "📸 Tomar foto"
-)
-
-foto_bytes = None
-
-if foto is not None:
-
-    # =================================================
-    # PREPARAR FOTO CON INFORMACIÓN
-    # =================================================
-
-    gestor_actual = st.session_state.get(
-        "codigo_gestor",
-        ""
+    foto = st.camera_input(
+        "📸 Tomar foto"
     )
 
-    foto_bytes = preparar_foto(
-        foto=foto,
-        local=local.strip(),
-        fecha=fecha_visita,
-        hora=hora_visita,
-        latitud=latitud,
-        longitud=longitud,
-        gestor=gestor_actual
-    )
+    foto_bytes = None
 
-    if foto_bytes is not None:
+    if foto is not None:
 
-        st.success(
-            "📸 Foto preparada correctamente."
+        # =================================================
+        # PREPARAR FOTO CON INFORMACIÓN
+        # =================================================
+
+        gestor_actual = st.session_state.get(
+            "codigo_gestor",
+            ""
         )
 
-        st.image(
-            foto_bytes,
-            caption="Foto del local",
-            use_container_width=True
+        foto_bytes = preparar_foto(
+            foto=foto,
+            local=local.strip(),
+            fecha=fecha_visita,
+            hora=hora_visita,
+            latitud=latitud,
+            longitud=longitud,
+            gestor=gestor_actual
         )
 
-    else:
+        if foto_bytes is not None:
 
-        st.error(
-            "❌ No se pudo preparar la fotografía."
-        )
+            st.success(
+                "📸 Foto preparada correctamente."
+            )
 
+            st.image(
+                foto_bytes,
+                caption="Foto del local",
+                use_container_width=True
+            )
+
+        else:
+
+            st.error(
+                "❌ No se pudo preparar la fotografía."
+            )
     # =====================================================
     # RESUMEN
     # =====================================================
@@ -2048,12 +2047,36 @@ if foto is not None:
                 use_container_width=True
             )
 
+            # =================================================
+            # COMPARTIR FOTO
+            # =================================================
+
+            if foto_bytes:
+
+                st.subheader("📲 Compartir foto")
+
+                st.download_button(
+                    label="⬇️ Descargar foto",
+                    data=foto_bytes,
+                    file_name=f"APDAYC_{local.strip()}.jpg",
+                    mime="image/jpeg",
+                    use_container_width=True
+                )
+
+                boton_compartir_foto_whatsapp(
+                    foto_bytes=foto_bytes,
+                    local=local.strip(),
+                    fecha=fecha_visita,
+                    hora=hora_visita
+                )
+
         else:
 
             st.error(
                 "❌ La visita NO quedó registrada. "
                 "Revisa el error de Firebase mostrado arriba."
             )
+
 
 
 # =========================================================
@@ -2220,7 +2243,7 @@ elif opcion == "📥 Exportar Excel":
         "registradas y marca si cada visita tiene foto."
     )
 
-    if st.button(
+       if st.button(
         "🚗 Generar Excel de visitas"
     ):
 
