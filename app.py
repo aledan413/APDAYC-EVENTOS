@@ -2090,13 +2090,14 @@ elif opcion == "🚗 Visitas":
 
                 st.subheader("📲 Compartir foto")
 
-                st.download_button(
-                    label="⬇️ Descargar foto",
-                    data=foto_bytes,
-                    file_name=f"APDAYC_{local.strip()}.jpg",
-                    mime="image/jpeg",
-                    use_container_width=True
-                )
+               st.download_button(
+                  label="⬇️ Descargar foto",
+                  data=foto_bytes,
+                  file_name=f"APDAYC_{local.strip()}.jpg",
+                  mime="image/jpeg",
+                  use_container_width=True,
+                  key="descargar_foto_guardada"
+            )
 
                 boton_compartir_foto_whatsapp(
                     foto_bytes=foto_bytes,
