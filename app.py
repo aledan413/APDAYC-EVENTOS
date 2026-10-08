@@ -1842,7 +1842,22 @@ elif opcion == "🚗 Visitas":
                 caption="Foto del local",
                 use_container_width=True
             )
+    st.subheader("📲 Foto lista para enviar")
 
+    st.download_button(
+        label="⬇️ Descargar foto",
+        data=foto_bytes,
+        file_name=f"APDAYC_{local.strip()}.jpg",
+        mime="image/jpeg",
+        use_container_width=True
+    )
+
+    boton_compartir_foto_whatsapp(
+        foto_bytes=foto_bytes,
+        local=local.strip(),
+        fecha=fecha_visita,
+        hora=hora_visita
+    )
         else:
 
             st.error(
