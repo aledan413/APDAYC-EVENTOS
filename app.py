@@ -1,4 +1,5 @@
 import streamlit as st
+import requests
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 import firebase_admin
@@ -38,14 +39,55 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
-
 # =========================================================
-# USUARIOS PILOTO
+# AUTENTICACIÓN FIREBASE
 # =========================================================
 
-USUARIOS_PILOTO = {
-    "LN14": "1234"
-}
+def autenticar_usuario(email, password):
+
+    api_key = st.secrets["firebase_api_key"]
+
+    url = (
+        "https://identitytoolkit.googleapis.com/v1/"
+        f"accounts:signInWithPassword?key={api_key}"
+    )
+
+    datos = {
+        "email": email,
+        "password": password,
+        "returnSecureToken": True
+    }
+
+    try:
+
+        respuesta = requests.post(
+            url,
+            json=datos,
+            timeout=15
+        )
+
+        if respuesta.status_code == 200:
+
+            return respuesta.json()
+
+        error_data = respuesta.json()
+
+        mensaje_error = (
+            error_data
+            .get("error", {})
+            .get("message", "Error de autenticación")
+        )
+
+        return {
+            "error": mensaje_error
+        }
+
+    except Exception as e:
+
+        return {
+            "error": str(e)
+        }
+
 
 
 # =========================================================
@@ -578,11 +620,10 @@ def crear_excel_visitas():
 
 
 # =========================================================
-# LOGIN
+# LOGIN CON FIREBASE AUTHENTICATION
 # =========================================================
 
 if "logueado" not in st.session_state:
-
     st.session_state.logueado = False
 
 
@@ -590,12 +631,11 @@ if not st.session_state.logueado:
 
     st.title("🎵 APDAYC - Eventos")
 
-    st.subheader(
-        "Ingreso de gestor"
-    )
+    st.subheader("Ingreso de gestor")
 
-    codigo = st.text_input(
-        "Código"
+    email = st.text_input(
+        "Correo electrónico",
+        placeholder="ejemplo@correo.com"
     )
 
     password = st.text_input(
@@ -604,28 +644,83 @@ if not st.session_state.logueado:
     )
 
     if st.button(
-        "Ingresar"
+        "Ingresar",
+        type="primary",
+        use_container_width=True
     ):
 
-        if (
-            codigo in USUARIOS_PILOTO
-            and USUARIOS_PILOTO[codigo]
-            == password
-        ):
+        if not email.strip():
 
-            st.session_state.logueado = True
-
-            st.session_state.codigo_gestor = (
-                codigo
+            st.error(
+                "⚠️ Ingresa tu correo electrónico."
             )
 
-            st.rerun()
+        elif not password:
+
+            st.error(
+                "⚠️ Ingresa tu contraseña."
+            )
 
         else:
 
-            st.error(
-                "Código o contraseña incorrectos."
+            resultado = autenticar_usuario(
+                email.strip(),
+                password
             )
+
+            if "idToken" in resultado:
+
+                st.session_state.logueado = True
+
+                st.session_state.email_usuario = (
+                    resultado.get("email", email)
+                )
+
+                st.session_state.uid_usuario = (
+                    resultado.get("localId", "")
+                )
+
+                # Código temporal del gestor piloto
+                st.session_state.codigo_gestor = "LN14"
+
+                st.rerun()
+
+            else:
+
+                error = resultado.get(
+                    "error",
+                    "Error desconocido"
+                )
+
+                if error == "EMAIL_NOT_FOUND":
+
+                    st.error(
+                        "❌ El correo no está registrado."
+                    )
+
+                elif error == "INVALID_PASSWORD":
+
+                    st.error(
+                        "❌ La contraseña es incorrecta."
+                    )
+
+                elif error == "INVALID_LOGIN_CREDENTIALS":
+
+                    st.error(
+                        "❌ Correo o contraseña incorrectos."
+                    )
+
+                elif error == "USER_DISABLED":
+
+                    st.error(
+                        "❌ Este usuario está deshabilitado."
+                    )
+
+                else:
+
+                    st.error(
+                        f"❌ No se pudo iniciar sesión: {error}"
+                    )
 
     st.stop()
 
