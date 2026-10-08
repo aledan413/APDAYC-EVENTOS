@@ -1867,7 +1867,8 @@ elif opcion == "🚗 Visitas":
                 data=foto_bytes,
                 file_name=f"APDAYC_{local.strip()}.jpg",
                 mime="image/jpeg",
-                use_container_width=True
+                use_container_width=True,
+                key="descargar_foto_preview"
             )
 
             boton_compartir_foto_whatsapp(
